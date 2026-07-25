@@ -1,0 +1,272 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Class-based dark mode (synced with next-themes `attribute="class"`) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #0b0f19;
+  color-scheme: light;
+
+  /* Brand tokens used by markdown preview */
+  --color-navy: #0b0f19;
+  --color-electric: #3882f6;
+  --color-cyan: #00d4ff;
+  --color-purple: #6c5dd3;
+  --color-white: #ffffff;
+  --color-muted: #667085;
+
+  /* Admin design system */
+  --admin-primary: #2563eb;
+  --admin-purple: #7c3aed;
+  --admin-bg: #f8fafc;
+  --admin-dark: #0b1020;
+  --admin-text: #111827;
+  --admin-text-secondary: #4b5563;
+  --admin-text-muted: #9ca3af;
+  --admin-border: #e5e7eb;
+  --admin-surface: #ffffff;
+  --admin-muted: #f1f5f9;
+  --admin-success: #22c55e;
+  --admin-warning: #f59e0b;
+  --admin-danger: #ef4444;
+}
+
+.dark {
+  --background: #0b1020;
+  --foreground: #f8fafc;
+  --admin-bg: #0b1020;
+  --admin-text: #f8fafc;
+  --admin-text-secondary: #cbd5e1;
+  --admin-text-muted: #94a3b8;
+  --admin-border: #1e293b;
+  --admin-surface: #111827;
+  --admin-muted: #1e293b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-navy: var(--color-navy);
+  --color-electric: var(--color-electric);
+  --color-cyan: var(--color-cyan);
+  --color-purple: var(--color-purple);
+  --color-white: var(--color-white);
+  --color-muted: var(--color-muted);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --color-primary: var(--admin-primary);
+  --color-accent-purple: var(--admin-purple);
+  --color-admin-bg: var(--admin-bg);
+  --color-admin-dark: var(--admin-dark);
+  --color-admin-text: var(--admin-text);
+  --color-admin-text-secondary: var(--admin-text-secondary);
+  --color-admin-text-muted: var(--admin-text-muted);
+  --color-admin-border: var(--admin-border);
+  --color-admin-surface: var(--admin-surface);
+  --color-admin-muted: var(--admin-muted);
+  --color-success: var(--admin-success);
+  --color-warning: var(--admin-warning);
+  --color-danger: var(--admin-danger);
+}
+
+/* Sidebar custom scrollbar */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--admin-border) transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: var(--admin-border);
+  border-radius: 9999px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--admin-text-muted);
+}
+
+/* Blog markdown rendering — preview tabs */
+.blog-prose {
+  @apply max-w-none text-[1.0625rem] leading-[1.8] tracking-tight;
+}
+
+.blog-prose-light {
+  @apply text-slate-800;
+}
+
+.dark .blog-prose-light {
+  @apply text-slate-200;
+}
+
+.blog-prose-dark {
+  @apply text-slate-200;
+}
+
+.blog-prose-h2 {
+  @apply mt-12 mb-5 block border-b-2 border-electric/15 pb-3 text-[1.75rem] font-bold leading-tight tracking-tight scroll-mt-20 text-navy;
+}
+
+.dark .blog-prose-h2,
+.dark .blog-prose-light .blog-prose-h2 {
+  @apply border-cyan/20 text-white;
+}
+
+.blog-prose-h3 {
+  @apply mt-9 mb-4 block text-[1.375rem] font-semibold leading-snug tracking-tight scroll-mt-20 text-navy;
+}
+
+.dark .blog-prose-h3,
+.dark .blog-prose-light .blog-prose-h3 {
+  @apply text-white;
+}
+
+.blog-prose-h4 {
+  @apply mt-7 mb-3 block text-lg font-semibold leading-snug text-navy;
+}
+
+.dark .blog-prose-h4,
+.dark .blog-prose-light .blog-prose-h4 {
+  @apply text-white;
+}
+
+.blog-prose-p {
+  @apply mb-5 block leading-[1.8];
+}
+
+.blog-prose-light .blog-prose-p {
+  @apply text-slate-700;
+}
+
+.dark .blog-prose-light .blog-prose-p {
+  @apply text-slate-300;
+}
+
+.blog-prose-dark .blog-prose-p {
+  @apply text-slate-300;
+}
+
+.blog-prose-ul {
+  @apply mb-6 block list-disc space-y-2.5 pl-7;
+}
+
+.blog-prose-ol {
+  @apply mb-6 block list-decimal space-y-2.5 pl-7;
+}
+
+.blog-prose-li {
+  @apply list-item pl-1 leading-[1.7] marker:text-electric marker:font-semibold;
+}
+
+.blog-prose-light .blog-prose-li {
+  @apply text-slate-700;
+}
+
+.dark .blog-prose-light .blog-prose-li {
+  @apply text-slate-300;
+}
+
+.blog-prose-li > .blog-prose-ul,
+.blog-prose-li > .blog-prose-ol {
+  @apply mt-2 mb-1;
+}
+
+.blog-prose-blockquote {
+  @apply my-8 block rounded-r-xl border-l-4 border-electric bg-gradient-to-br from-electric/10 to-cyan/5 py-5 pl-6 pr-5 text-[0.975rem] leading-relaxed;
+}
+
+.blog-prose-dark .blog-prose-blockquote {
+  @apply border-cyan from-electric/15 to-cyan/10;
+}
+
+.blog-prose-blockquote .blog-prose-p {
+  @apply mb-0;
+}
+
+.blog-prose-table-wrap {
+  @apply my-8 block overflow-x-auto rounded-xl border border-navy/10 shadow-sm;
+}
+
+.blog-prose-dark .blog-prose-table-wrap {
+  @apply border-white/10;
+}
+
+.blog-prose-table {
+  @apply w-full min-w-[480px] border-collapse text-sm leading-normal;
+}
+
+.blog-prose-thead {
+  @apply bg-navy/5;
+}
+
+.blog-prose-dark .blog-prose-thead {
+  @apply bg-white/5;
+}
+
+.blog-prose-th {
+  @apply border-b-2 border-navy/10 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-navy;
+}
+
+.blog-prose-dark .blog-prose-th {
+  @apply border-white/10 text-white;
+}
+
+.blog-prose-td {
+  @apply border-b border-navy/5 px-4 py-3.5 align-top text-slate-700;
+}
+
+.blog-prose-dark .blog-prose-td {
+  @apply border-white/5 text-slate-300;
+}
+
+.blog-prose-tr:last-child .blog-prose-td {
+  @apply border-b-0;
+}
+
+.blog-prose-tr:hover .blog-prose-td {
+  @apply bg-electric/5;
+}
+
+.blog-prose-pre {
+  @apply my-8 block overflow-x-auto rounded-xl border border-white/10 bg-navy p-5 shadow-md;
+}
+
+.blog-prose-code {
+  @apply block font-mono text-[0.8125rem] leading-relaxed text-slate-200;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.blog-prose-inline-code {
+  @apply rounded-md bg-electric/10 px-1.5 py-0.5 font-mono text-[0.875em] font-medium text-electric;
+}
+
+.blog-prose-dark .blog-prose-inline-code {
+  @apply bg-cyan/15 text-cyan;
+}
+
+.blog-prose-link {
+  @apply font-medium text-electric underline decoration-electric/40 underline-offset-[3px] transition-colors hover:text-electric/80 hover:decoration-electric;
+}
+
+.blog-prose-dark .blog-prose-link {
+  @apply text-cyan decoration-cyan/40 hover:text-cyan/80 hover:decoration-cyan;
+}
+
+.blog-prose-hr {
+  @apply my-12 block border-0 border-t border-navy/10;
+}
+
+.blog-prose-dark .blog-prose-hr {
+  @apply border-white/10;
+}
