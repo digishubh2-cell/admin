@@ -6,6 +6,12 @@ const publicRoutes = ["/login"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Same-origin API proxy — must not require auth cookies (login sets them).
+  if (pathname.startsWith("/api/backend")) {
+    return NextResponse.next();
+  }
+
   const isPublicRoute = publicRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
@@ -26,6 +32,10 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    /*
+     * Skip static assets. Keep /api/backend in the matcher so we can
+     * explicitly pass it through above (do not auth-gate the proxy).
+     */
     "/((?!_next/static|_next/image|favicon.ico|logo.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

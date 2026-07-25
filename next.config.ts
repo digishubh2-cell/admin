@@ -1,5 +1,11 @@
 import type { NextConfig } from "next";
 
+/**
+ * Admin auth relies on HttpOnly cookies readable by middleware on this host.
+ * Browser must call same-origin `/api/backend/*` (NEXT_PUBLIC_API_URL=/api/backend)
+ * so Set-Cookie attaches to admin.shubhdigi.in — not the API host.
+ * BACKEND_URL is server-only and powers the rewrite destination.
+ */
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -36,7 +42,9 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:5001";
+    const backendUrl = (
+      process.env.BACKEND_URL || "http://localhost:5001"
+    ).replace(/\/$/, "");
     return [
       {
         source: "/api/backend/:path*",
