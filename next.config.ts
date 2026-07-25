@@ -10,7 +10,15 @@ import type { NextConfig } from "next";
  *
  * Rewrite below is a fallback only; the Route Handler takes precedence for
  * /api/backend when both exist.
+ *
+ * Destination is `${origin}/api/:path*` — never `/api/backend/:path*`.
  */
+function normalizeBackendUrl(raw?: string): string {
+  let url = (raw || "http://localhost:5001").trim().replace(/\/+$/, "");
+  url = url.replace(/\/api\/backend$/i, "").replace(/\/api$/i, "");
+  return url.replace(/\/+$/, "");
+}
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -47,9 +55,7 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    const backendUrl = (
-      process.env.BACKEND_URL || "http://localhost:5001"
-    ).replace(/\/$/, "");
+    const backendUrl = normalizeBackendUrl(process.env.BACKEND_URL);
     return [
       {
         source: "/api/backend/:path*",

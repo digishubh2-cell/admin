@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildBackendApiUrl } from "@/lib/api/backend-url";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,6 +8,13 @@ export const dynamic = "force-dynamic";
  * Same-origin Backend proxy.
  *
  * Browser → /api/backend/* → this handler → BACKEND_URL/api/*
+ *
+ * Example:
+ *   Incoming: /api/backend/auth/login  (params.path = ['auth','login'])
+ *   Upstream: https://<host>/api/auth/login
+ *
+ * Never forward request.nextUrl.pathname — that would send /api/backend/...
+ * to Express, which only mounts /api/auth, /api/blogs, etc.
  *
  * Why not next.config rewrites alone?
  * Vercel/Next rewrites to an external origin often drop or mishandle
@@ -26,10 +34,6 @@ const HOP_BY_HOP = new Set([
   "content-encoding",
   "content-length",
 ]);
-
-function backendBase(): string {
-  return (process.env.BACKEND_URL || "http://localhost:5001").replace(/\/$/, "");
-}
 
 /** Host-only cookie on the admin origin; Path=/ for middleware. */
 function rewriteSetCookie(setCookie: string): string {
@@ -69,9 +73,7 @@ async function proxy(
   context: { params: Promise<{ path: string[] }> }
 ) {
   const { path } = await context.params;
-  const targetPath = path.map(encodeURIComponent).join("/");
-  const search = request.nextUrl.search;
-  const targetUrl = `${backendBase()}/api/${targetPath}${search}`;
+  const targetUrl = buildBackendApiUrl(path, request.nextUrl.search);
 
   const headers = new Headers();
   for (const name of [
