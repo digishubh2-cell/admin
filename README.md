@@ -37,9 +37,10 @@ FRONTEND_URL=http://localhost:3000
 ADMIN_URL=http://localhost:3001
 ```
 
-Admin `.env.local` should point at the API:
+Admin `.env.local` should use the same-origin proxy:
 
 ```
-NEXT_PUBLIC_API_URL=http://localhost:5001/api
+NEXT_PUBLIC_API_URL=/api/backend
+BACKEND_URL=http://localhost:5001
 NEXT_PUBLIC_ADMIN_URL=http://localhost:3001
 ```

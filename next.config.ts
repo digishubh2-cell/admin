@@ -4,7 +4,12 @@ import type { NextConfig } from "next";
  * Admin auth relies on HttpOnly cookies readable by middleware on this host.
  * Browser must call same-origin `/api/backend/*` (NEXT_PUBLIC_API_URL=/api/backend)
  * so Set-Cookie attaches to admin.shubhdigi.in — not the API host.
- * BACKEND_URL is server-only and powers the rewrite destination.
+ *
+ * Primary proxy: `src/app/api/backend/[...path]/route.ts` (forwards Set-Cookie,
+ * strips Domain). BACKEND_URL is server-only.
+ *
+ * Rewrite below is a fallback only; the Route Handler takes precedence for
+ * /api/backend when both exist.
  */
 const nextConfig: NextConfig = {
   images: {

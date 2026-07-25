@@ -50,8 +50,10 @@ export function LoginForm() {
       }
 
       toast.success("Welcome back");
-      // Relative path only (open-redirect safe). Hard navigate so middleware
-      // sees newly set HttpOnly cookies on this origin (soft push can race).
+      // Relative path only (open-redirect safe). Hard navigate (not router.push)
+      // so the next document request includes HttpOnly cookies set by
+      // POST /api/backend/auth/login on this origin. Soft navigation can race
+      // middleware and bounce back to /login?redirect=/.
       const raw = searchParams.get("redirect") || "/";
       const redirect =
         raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
