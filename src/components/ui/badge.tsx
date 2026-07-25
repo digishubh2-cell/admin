@@ -46,6 +46,10 @@ export function StatusBadge({ status }: { status: string }) {
     lost: "danger",
     under_review: "warning",
     shortlisted: "success",
+    interview: "primary",
+    offered: "warning",
+    hired: "success",
+    completed: "success",
     rejected: "danger",
   };
 

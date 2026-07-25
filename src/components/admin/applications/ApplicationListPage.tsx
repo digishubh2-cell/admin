@@ -11,12 +11,27 @@ import type {
   Application,
   ApplicationListParams,
   ApplicationStatus,
+  CompletePayload,
+  HirePayload,
+  InterviewPayload,
+  OfferPayload,
+  RejectPayload,
 } from "@/types/application";
 import { ApplicationFilters } from "./ApplicationFilters";
 import { ApplicationStatsCards } from "./ApplicationStatsCards";
 import { ApplicationTable } from "./ApplicationTable";
 import { ApplicationDetailDrawer } from "./ApplicationDetailDrawer";
 import { Button } from "@/components/ui/button";
+
+function getErrorMessage(err: unknown) {
+  if (err && typeof err === "object" && "response" in err) {
+    const response = (err as { response?: { data?: { message?: string } } })
+      .response;
+    if (response?.data?.message) return response.data.message;
+  }
+  if (err instanceof Error) return err.message;
+  return "Something went wrong";
+}
 
 export function ApplicationListPage() {
   const [params, setParams] = useState<ApplicationListParams>({
@@ -31,7 +46,15 @@ export function ApplicationListPage() {
 
   const { data: stats, isLoading: statsLoading } = useApplicationStats();
   const { data, isLoading } = useApplications(params);
-  const { update, remove } = useApplicationMutations();
+  const mutations = useApplicationMutations();
+
+  const pipelineBusy =
+    mutations.advance.isPending ||
+    mutations.interview.isPending ||
+    mutations.offer.isPending ||
+    mutations.hire.isPending ||
+    mutations.complete.isPending ||
+    mutations.reject.isPending;
 
   function handleView(application: Application) {
     setSelected(application);
@@ -41,39 +64,166 @@ export function ApplicationListPage() {
 
   async function handleStatusChange(id: string, status: ApplicationStatus) {
     try {
-      const updated = await update.mutateAsync({ id, payload: { status } });
+      // Simple statuses via advance when possible; archived via delete
+      if (status === "archived") {
+        await mutations.remove.mutateAsync(id);
+        toast.success("Application archived");
+        if (selected?.id === id) {
+          setDrawerOpen(false);
+          setSelected(null);
+        }
+        return;
+      }
+
+      if (["interview", "offered", "hired", "completed"].includes(status)) {
+        toast.message("Open the candidate and use the pipeline action for this stage");
+        return;
+      }
+
+      if (status === "rejected") {
+        const updated = await mutations.reject.mutateAsync({
+          id,
+          payload: { sendEmail: false },
+        });
+        toast.success("Marked as rejected");
+        if (selected?.id === id) setSelected(updated);
+        return;
+      }
+
+      if (status === "shortlisted" || status === "under_review") {
+        const updated = await mutations.advance.mutateAsync({
+          id,
+          toStatus: status,
+          sendEmail: status === "shortlisted",
+        });
+        toast.success(`Marked as ${status.replace(/_/g, " ")}`);
+        if (selected?.id === id) setSelected(updated);
+        return;
+      }
+
+      const updated = await mutations.update.mutateAsync({
+        id,
+        payload: { status },
+      });
       toast.success(`Marked as ${status.replace(/_/g, " ")}`);
       if (selected?.id === id) setSelected(updated);
-    } catch {
-      toast.error("Failed to update status");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
     }
   }
 
   async function handleSaveNotes() {
     if (!selected) return;
     try {
-      const updated = await update.mutateAsync({
+      const updated = await mutations.update.mutateAsync({
         id: selected.id,
         payload: { notes },
       });
       setSelected(updated);
       toast.success("Notes saved");
-    } catch {
-      toast.error("Failed to save notes");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
     }
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Archive this application?")) return;
     try {
-      await remove.mutateAsync(id);
+      await mutations.remove.mutateAsync(id);
       toast.success("Application archived");
       if (selected?.id === id) {
         setDrawerOpen(false);
         setSelected(null);
       }
-    } catch {
-      toast.error("Failed to archive application");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  }
+
+  async function handleAdvance(toStatus: ApplicationStatus, sendEmail = true) {
+    if (!selected) return;
+    try {
+      const updated = await mutations.advance.mutateAsync({
+        id: selected.id,
+        toStatus,
+        sendEmail,
+      });
+      setSelected(updated);
+      toast.success(`Moved to ${toStatus.replace(/_/g, " ")}`);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  }
+
+  async function handleInterview(payload: InterviewPayload) {
+    if (!selected) return;
+    try {
+      const updated = await mutations.interview.mutateAsync({
+        id: selected.id,
+        payload,
+      });
+      setSelected(updated);
+      toast.success("Interview invite sent");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  }
+
+  async function handleOffer(payload: OfferPayload) {
+    if (!selected) return;
+    try {
+      toast.message("Generating offer PDF…");
+      const updated = await mutations.offer.mutateAsync({
+        id: selected.id,
+        payload,
+      });
+      setSelected(updated);
+      toast.success("Offer letter sent");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  }
+
+  async function handleHire(payload: HirePayload) {
+    if (!selected) return;
+    try {
+      const updated = await mutations.hire.mutateAsync({
+        id: selected.id,
+        payload,
+      });
+      setSelected(updated);
+      toast.success("Marked hired — welcome email sent");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  }
+
+  async function handleComplete(payload: CompletePayload) {
+    if (!selected) return;
+    try {
+      toast.message("Generating certificate…");
+      const updated = await mutations.complete.mutateAsync({
+        id: selected.id,
+        payload,
+      });
+      setSelected(updated);
+      toast.success("Certificate issued and emailed");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  }
+
+  async function handleReject(payload: RejectPayload) {
+    if (!selected) return;
+    try {
+      const updated = await mutations.reject.mutateAsync({
+        id: selected.id,
+        payload,
+      });
+      setSelected(updated);
+      toast.success("Candidate rejected");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
     }
   }
 
@@ -82,7 +232,7 @@ export function ApplicationListPage() {
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Applications</h1>
         <p className="mt-1 text-admin-text-secondary">
-          Candidate inbox for careers applications — status, resume, and verification.
+          Internship / trainee hiring pipeline — shortlist, interview, offer, hire, and certify.
         </p>
       </div>
 
@@ -133,11 +283,15 @@ export function ApplicationListPage() {
         onOpenChange={setDrawerOpen}
         notes={notes}
         onNotesChange={setNotes}
-        onStatusChange={(status) =>
-          selected ? handleStatusChange(selected.id, status) : undefined
-        }
         onSaveNotes={handleSaveNotes}
-        saving={update.isPending}
+        saving={mutations.update.isPending}
+        pipelineBusy={pipelineBusy}
+        onAdvance={handleAdvance}
+        onInterview={handleInterview}
+        onOffer={handleOffer}
+        onHire={handleHire}
+        onComplete={handleComplete}
+        onReject={handleReject}
       />
     </div>
   );

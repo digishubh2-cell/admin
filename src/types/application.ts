@@ -2,8 +2,22 @@ export type ApplicationStatus =
   | "new"
   | "under_review"
   | "shortlisted"
+  | "interview"
+  | "offered"
+  | "hired"
+  | "completed"
   | "rejected"
   | "archived";
+
+export const PIPELINE_STAGES: ApplicationStatus[] = [
+  "new",
+  "under_review",
+  "shortlisted",
+  "interview",
+  "offered",
+  "hired",
+  "completed",
+];
 
 export interface ApplicationResume {
   url?: string | null;
@@ -21,6 +35,61 @@ export interface ApplicationSource {
   section: string;
   ctaLabel?: string | null;
   referrer?: string | null;
+}
+
+export interface ApplicationOffer {
+  roleTitle?: string | null;
+  track?: "internship" | "trainee" | string | null;
+  department?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  durationMonths?: number | null;
+  stipend?: number | null;
+  workMode?: string | null;
+  location?: string | null;
+  mentorName?: string | null;
+  offerValidUntil?: string | null;
+  letterUrl?: string | null;
+  letterFileId?: string | null;
+  sentAt?: string | null;
+}
+
+export interface ApplicationHire {
+  joinedAt?: string | null;
+  mentorName?: string | null;
+  notes?: string | null;
+}
+
+export interface ApplicationCompletion {
+  completedAt?: string | null;
+  certificateUrl?: string | null;
+  certificateFileId?: string | null;
+  certificateId?: string | null;
+  rating?: number | null;
+  feedback?: string | null;
+}
+
+export interface ApplicationEmailLogEntry {
+  id: string;
+  type: string;
+  subject: string;
+  to: string;
+  resendId?: string | null;
+  sentAt: string;
+  sentBy?: string | null;
+  status: string;
+  error?: string | null;
+}
+
+export interface ApplicationPipeline {
+  interviewAt?: string | null;
+  interviewMode?: "online" | "offline" | "phone" | string | null;
+  interviewLink?: string | null;
+  interviewNotes?: string | null;
+  offer?: ApplicationOffer;
+  hire?: ApplicationHire;
+  completion?: ApplicationCompletion;
+  emailLog?: ApplicationEmailLogEntry[];
 }
 
 export interface Application {
@@ -45,8 +114,14 @@ export interface Application {
   emailVerifiedAt?: string | null;
   source: ApplicationSource;
   notes?: string | null;
+  pipeline?: ApplicationPipeline;
   reviewedAt?: string | null;
   shortlistedAt?: string | null;
+  interviewedAt?: string | null;
+  offeredAt?: string | null;
+  hiredAt?: string | null;
+  completedAt?: string | null;
+  rejectedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -56,6 +131,10 @@ export interface ApplicationStats {
   new: number;
   under_review: number;
   shortlisted: number;
+  interview: number;
+  offered: number;
+  hired: number;
+  completed: number;
   rejected: number;
   archived: number;
   verified: number;
@@ -100,8 +179,62 @@ export interface CreateApplicationPayload {
   source?: Partial<ApplicationSource>;
 }
 
+export interface InterviewPayload {
+  interviewAt: string;
+  interviewMode?: "online" | "offline" | "phone";
+  interviewLink?: string | null;
+  interviewNotes?: string | null;
+  sendEmail?: boolean;
+}
+
+export interface OfferPayload {
+  roleTitle?: string;
+  track?: "internship" | "trainee";
+  department?: string | null;
+  startDate: string;
+  endDate: string;
+  durationMonths?: number | null;
+  stipend?: number | null;
+  workMode?: "remote" | "onsite" | "hybrid";
+  location?: string | null;
+  mentorName?: string | null;
+  offerValidUntil?: string | null;
+  sendEmail?: boolean;
+}
+
+export interface HirePayload {
+  joinedAt?: string | null;
+  mentorName?: string | null;
+  notes?: string | null;
+  sendEmail?: boolean;
+}
+
+export interface CompletePayload {
+  completedAt?: string | null;
+  rating?: number | null;
+  feedback?: string | null;
+  sendEmail?: boolean;
+}
+
+export interface RejectPayload {
+  sendEmail?: boolean;
+  reason?: string | null;
+}
+
 export const APPLICATION_STATUSES: ApplicationStatus[] = [
   "new",
+  "under_review",
+  "shortlisted",
+  "interview",
+  "offered",
+  "hired",
+  "completed",
+  "rejected",
+  "archived",
+];
+
+/** Statuses that can be set via simple advance (not dedicated forms). */
+export const SIMPLE_ADVANCE_STATUSES: ApplicationStatus[] = [
   "under_review",
   "shortlisted",
   "rejected",

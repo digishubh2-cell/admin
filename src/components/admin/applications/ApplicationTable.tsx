@@ -154,17 +154,17 @@ export function ApplicationTable({
                           View details
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {APPLICATION_STATUSES.filter((s) => s !== "archived").map(
-                          (status) => (
-                            <DropdownMenuItem
-                              key={status}
-                              onClick={() => onStatusChange(app.id, status)}
-                              className="capitalize"
-                            >
-                              Mark {formatStatusLabel(status)}
-                            </DropdownMenuItem>
-                          )
-                        )}
+                        {APPLICATION_STATUSES.filter((s) =>
+                          ["under_review", "shortlisted", "rejected"].includes(s)
+                        ).map((status) => (
+                          <DropdownMenuItem
+                            key={status}
+                            onClick={() => onStatusChange(app.id, status)}
+                            className="capitalize"
+                          >
+                            Mark {formatStatusLabel(status)}
+                          </DropdownMenuItem>
+                        ))}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => onDelete(app.id)}

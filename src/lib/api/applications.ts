@@ -1,9 +1,15 @@
 import { apiClient } from "./client";
 import type {
   Application,
+  ApplicationEmailLogEntry,
   ApplicationListParams,
   ApplicationStats,
+  CompletePayload,
+  HirePayload,
+  InterviewPayload,
+  OfferPayload,
   PaginatedApplications,
+  RejectPayload,
 } from "@/types/application";
 
 interface ApiResponse {
@@ -12,6 +18,9 @@ interface ApiResponse {
   application?: Application;
   items?: Application[];
   stats?: ApplicationStats;
+  emails?: ApplicationEmailLogEntry[];
+  html?: string;
+  kind?: string;
   pagination?: PaginatedApplications["pagination"];
 }
 
@@ -39,6 +48,82 @@ export async function updateApplication(
 ) {
   const { data } = await apiClient.patch<ApiResponse>(`/applications/${id}`, payload);
   return data.application!;
+}
+
+export async function advanceApplication(
+  id: string,
+  payload: { toStatus: string; sendEmail?: boolean }
+) {
+  const { data } = await apiClient.patch<ApiResponse>(
+    `/applications/${id}/advance`,
+    payload
+  );
+  return data.application!;
+}
+
+export async function scheduleInterview(id: string, payload: InterviewPayload) {
+  const { data } = await apiClient.post<ApiResponse>(
+    `/applications/${id}/interview`,
+    payload
+  );
+  return data.application!;
+}
+
+export async function sendOffer(id: string, payload: OfferPayload) {
+  const { data } = await apiClient.post<ApiResponse>(
+    `/applications/${id}/offer`,
+    payload
+  );
+  return data.application!;
+}
+
+export async function markHired(id: string, payload: HirePayload = {}) {
+  const { data } = await apiClient.post<ApiResponse>(
+    `/applications/${id}/hire`,
+    payload
+  );
+  return data.application!;
+}
+
+export async function completeInternship(id: string, payload: CompletePayload = {}) {
+  const { data } = await apiClient.post<ApiResponse>(
+    `/applications/${id}/complete`,
+    payload
+  );
+  return data.application!;
+}
+
+export async function rejectApplication(id: string, payload: RejectPayload = {}) {
+  const { data } = await apiClient.post<ApiResponse>(
+    `/applications/${id}/reject`,
+    payload
+  );
+  return data.application!;
+}
+
+export async function fetchApplicationEmails(id: string) {
+  const { data } = await apiClient.get<ApiResponse>(`/applications/${id}/emails`);
+  return data.emails || [];
+}
+
+export async function resendApplicationEmail(id: string, type: string) {
+  const { data } = await apiClient.post<ApiResponse>(
+    `/applications/${id}/emails/resend`,
+    { type }
+  );
+  return data.application!;
+}
+
+export async function previewDocument(
+  id: string,
+  kind: "offer" | "certificate",
+  params: Record<string, string | number | null | undefined> = {}
+) {
+  const { data } = await apiClient.get<ApiResponse>(
+    `/applications/${id}/documents/${kind}/preview`,
+    { params }
+  );
+  return { html: data.html || "", kind: data.kind || kind };
 }
 
 export async function deleteApplication(id: string) {
