@@ -75,7 +75,7 @@ export function ApplicationListPage() {
         return;
       }
 
-      if (["interview", "offered", "hired", "completed"].includes(status)) {
+      if (["offered", "hired", "completed"].includes(status)) {
         toast.message("Open the candidate and use the pipeline action for this stage");
         return;
       }
@@ -90,7 +90,10 @@ export function ApplicationListPage() {
         return;
       }
 
-      if (status === "shortlisted" || status === "under_review") {
+      // Pre-offer: free moves via advance (emails only when shortlisting)
+      if (
+        ["new", "under_review", "shortlisted"].includes(status)
+      ) {
         const updated = await mutations.advance.mutateAsync({
           id,
           toStatus: status,
@@ -101,6 +104,7 @@ export function ApplicationListPage() {
         return;
       }
 
+      // interview status without invite form (invite uses pipeline action)
       const updated = await mutations.update.mutateAsync({
         id,
         payload: { status },

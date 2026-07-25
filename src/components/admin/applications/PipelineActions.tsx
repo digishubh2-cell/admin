@@ -44,6 +44,14 @@ export function PipelineActions({
   onReject,
 }: PipelineActionsProps) {
   const status = application.status;
+  const offerLocked = Boolean(application.pipeline?.offer?.letterUrl) ||
+    ["offered", "hired", "completed"].includes(status);
+  const preOffer =
+    !offerLocked &&
+    ["new", "under_review", "shortlisted", "interview", "rejected"].includes(
+      status
+    );
+
   const [panel, setPanel] = useState<
     null | "interview" | "offer" | "hire" | "complete" | "reject"
   >(null);
@@ -97,16 +105,17 @@ export function PipelineActions({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {status === "new" ? (
+        {preOffer && status !== "under_review" ? (
           <Button
             size="sm"
+            variant="outline"
             disabled={busy}
             onClick={() => onAdvance("under_review", false)}
           >
-            Start review
+            Mark under review
           </Button>
         ) : null}
-        {status === "under_review" ? (
+        {preOffer && status !== "shortlisted" ? (
           <Button
             size="sm"
             disabled={busy}
@@ -115,12 +124,12 @@ export function PipelineActions({
             Shortlist &amp; email
           </Button>
         ) : null}
-        {status === "shortlisted" ? (
+        {preOffer ? (
           <Button size="sm" disabled={busy} onClick={() => setPanel("interview")}>
             Schedule interview
           </Button>
         ) : null}
-        {status === "interview" ? (
+        {preOffer ? (
           <Button size="sm" disabled={busy} onClick={() => setPanel("offer")}>
             Generate offer
           </Button>
@@ -135,7 +144,7 @@ export function PipelineActions({
             Issue certificate
           </Button>
         ) : null}
-        {status !== "rejected" && status !== "hired" ? (
+        {status !== "rejected" && status !== "hired" && status !== "completed" ? (
           <Button
             size="sm"
             variant="outline"

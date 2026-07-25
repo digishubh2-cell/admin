@@ -155,7 +155,13 @@ export function ApplicationTable({
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {APPLICATION_STATUSES.filter((s) =>
-                          ["under_review", "shortlisted", "rejected"].includes(s)
+                          [
+                            "new",
+                            "under_review",
+                            "shortlisted",
+                            "interview",
+                            "rejected",
+                          ].includes(s)
                         ).map((status) => (
                           <DropdownMenuItem
                             key={status}
