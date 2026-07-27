@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   Briefcase,
   CheckCircle2,
+  ClipboardCheck,
   Inbox,
   Sparkles,
   ThumbsDown,
@@ -20,6 +21,13 @@ const statConfig = [
   { key: "new" as const, label: "New", icon: Sparkles, color: "text-primary" },
   { key: "under_review" as const, label: "Review", icon: UserCheck, color: "text-warning" },
   { key: "shortlisted" as const, label: "Shortlisted", icon: BadgeCheck, color: "text-success" },
+  {
+    key: "assessment_invited" as const,
+    label: "Test invited",
+    icon: ClipboardCheck,
+    color: "text-primary",
+  },
+  { key: "qualified" as const, label: "Qualified", icon: BadgeCheck, color: "text-success" },
   { key: "interview" as const, label: "Interview", icon: Users, color: "text-primary" },
   { key: "offered" as const, label: "Offered", icon: Briefcase, color: "text-warning" },
   { key: "hired" as const, label: "Hired", icon: CheckCircle2, color: "text-success" },
@@ -38,7 +46,7 @@ export function ApplicationStatsCards({
   if (isLoading) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-5">
-        {Array.from({ length: 10 }).map((_, i) => (
+        {Array.from({ length: 12 }).map((_, i) => (
           <Skeleton key={i} className="h-24 rounded-2xl" />
         ))}
       </div>

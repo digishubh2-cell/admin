@@ -159,6 +159,8 @@ export function ApplicationTable({
                             "new",
                             "under_review",
                             "shortlisted",
+                            "assessment_invited",
+                            "qualified",
                             "interview",
                             "rejected",
                           ].includes(s)

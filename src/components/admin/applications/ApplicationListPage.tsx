@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
+  useApplication,
   useApplicationMutations,
   useApplications,
   useApplicationStats,
@@ -47,6 +49,19 @@ export function ApplicationListPage() {
   const { data: stats, isLoading: statsLoading } = useApplicationStats();
   const { data, isLoading } = useApplications(params);
   const mutations = useApplicationMutations();
+
+  const searchParams = useSearchParams();
+  const deepLinkId = searchParams.get("applicationId");
+  const { data: deepLinkApplication } = useApplication(deepLinkId || "");
+
+  useEffect(() => {
+    if (deepLinkId && deepLinkApplication) {
+      setSelected(deepLinkApplication);
+      setNotes(deepLinkApplication.notes || "");
+      setDrawerOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkId, deepLinkApplication]);
 
   const pipelineBusy =
     mutations.advance.isPending ||

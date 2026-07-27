@@ -41,6 +41,8 @@ export type Permission =
   | "jobs.write"
   | "applications.read"
   | "applications.write"
+  | "assessments.read"
+  | "assessments.write"
   | "downloads.read"
   | "documentation.read"
   | "services.read"

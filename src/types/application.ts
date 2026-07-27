@@ -2,6 +2,10 @@ export type ApplicationStatus =
   | "new"
   | "under_review"
   | "shortlisted"
+  | "assessment_invited"
+  | "assessment_in_progress"
+  | "assessment_submitted"
+  | "qualified"
   | "interview"
   | "offered"
   | "hired"
@@ -13,6 +17,9 @@ export const PIPELINE_STAGES: ApplicationStatus[] = [
   "new",
   "under_review",
   "shortlisted",
+  "assessment_invited",
+  "assessment_submitted",
+  "qualified",
   "interview",
   "offered",
   "hired",
@@ -81,6 +88,13 @@ export interface ApplicationEmailLogEntry {
   error?: string | null;
 }
 
+export interface ApplicationAssessment {
+  attemptId?: string | null;
+  path?: "test" | "both" | null;
+  templateId?: string | null;
+  invitedAt?: string | null;
+}
+
 export interface ApplicationPipeline {
   interviewAt?: string | null;
   interviewMode?: "online" | "offline" | "phone" | string | null;
@@ -89,6 +103,7 @@ export interface ApplicationPipeline {
   offer?: ApplicationOffer;
   hire?: ApplicationHire;
   completion?: ApplicationCompletion;
+  assessment?: ApplicationAssessment;
   emailLog?: ApplicationEmailLogEntry[];
 }
 
@@ -131,6 +146,10 @@ export interface ApplicationStats {
   new: number;
   under_review: number;
   shortlisted: number;
+  assessment_invited: number;
+  assessment_in_progress: number;
+  assessment_submitted: number;
+  qualified: number;
   interview: number;
   offered: number;
   hired: number;
@@ -225,6 +244,10 @@ export const APPLICATION_STATUSES: ApplicationStatus[] = [
   "new",
   "under_review",
   "shortlisted",
+  "assessment_invited",
+  "assessment_in_progress",
+  "assessment_submitted",
+  "qualified",
   "interview",
   "offered",
   "hired",

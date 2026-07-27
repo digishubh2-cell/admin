@@ -41,6 +41,10 @@ export function ApplicationFilters({ params, onChange }: Props) {
           <option value="new">New</option>
           <option value="under_review">Under review</option>
           <option value="shortlisted">Shortlisted</option>
+          <option value="assessment_invited">Assessment invited</option>
+          <option value="assessment_in_progress">Assessment in progress</option>
+          <option value="assessment_submitted">Assessment submitted</option>
+          <option value="qualified">Qualified</option>
           <option value="interview">Interview</option>
           <option value="offered">Offered</option>
           <option value="hired">Hired</option>

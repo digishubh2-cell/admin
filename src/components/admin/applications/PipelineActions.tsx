@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useAssessmentMutations, useTemplates } from "@/hooks/use-assessments";
 import type {
   Application,
   ApplicationStatus,
@@ -14,6 +18,15 @@ import type {
   OfferPayload,
   RejectPayload,
 } from "@/types/application";
+
+function getErrorMessage(err: unknown) {
+  if (err && typeof err === "object" && "response" in err) {
+    const response = (err as { response?: { data?: { message?: string } } }).response;
+    if (response?.data?.message) return response.data.message;
+  }
+  if (err instanceof Error) return err.message;
+  return "Something went wrong";
+}
 
 function toDateInput(iso?: string | null) {
   if (!iso) return "";
@@ -48,12 +61,58 @@ export function PipelineActions({
     ["offered", "hired", "completed"].includes(status);
   const preOffer =
     !offerLocked &&
-    ["new", "under_review", "shortlisted", "interview", "rejected"].includes(
-      status
-    );
+    [
+      "new",
+      "under_review",
+      "shortlisted",
+      "qualified",
+      "interview",
+      "rejected",
+    ].includes(status);
+
+  const assessment = application.pipeline?.assessment;
+  const hasActiveAttempt = Boolean(assessment?.attemptId);
+  const canInviteToAssessment =
+    !offerLocked && ["new", "under_review", "shortlisted"].includes(status);
+  const isAwaitingCandidate = ["assessment_invited", "assessment_in_progress"].includes(
+    status
+  );
+  const isAwaitingDecision = status === "assessment_submitted";
+  const bothPathAfterQualify = status === "qualified" && assessment?.path === "both";
+
+  const { data: templates } = useTemplates();
+  const { invite, resend } = useAssessmentMutations();
+  const [templateId, setTemplateId] = useState("");
+  const [path, setPath] = useState<"test" | "both">("test");
+
+  async function handleInvite() {
+    if (!templateId) {
+      toast.error("Select a template first");
+      return;
+    }
+    try {
+      await invite.mutateAsync({
+        applicationId: application.id,
+        payload: { templateId, path },
+      });
+      toast.success("Assessment invite sent");
+      setPanel(null);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  }
+
+  async function handleResendInvite() {
+    try {
+      await resend.mutateAsync(application.id);
+      toast.success("Assessment invite resent");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  }
 
   const [panel, setPanel] = useState<
-    null | "interview" | "offer" | "hire" | "complete" | "reject"
+    null | "interview" | "offer" | "hire" | "complete" | "reject" | "assessment"
   >(null);
 
   const [interview, setInterview] = useState({
@@ -102,10 +161,21 @@ export function PipelineActions({
     );
   }
 
+  const earlyPreOffer =
+    preOffer && ["new", "under_review", "shortlisted"].includes(status);
+
   return (
     <div className="space-y-4">
+      {bothPathAfterQualify ? (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
+          <p className="font-medium">Qualified — Test + Interview path</p>
+          <p className="mt-0.5 text-admin-text-muted">
+            This candidate chose the combined path. Schedule the interview below to continue.
+          </p>
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-2">
-        {preOffer && status !== "under_review" ? (
+        {earlyPreOffer && status !== "under_review" ? (
           <Button
             size="sm"
             variant="outline"
@@ -115,13 +185,40 @@ export function PipelineActions({
             Mark under review
           </Button>
         ) : null}
-        {preOffer && status !== "shortlisted" ? (
+        {earlyPreOffer && status !== "shortlisted" ? (
           <Button
             size="sm"
             disabled={busy}
             onClick={() => onAdvance("shortlisted", true)}
           >
             Shortlist &amp; email
+          </Button>
+        ) : null}
+        {canInviteToAssessment ? (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => setPanel("assessment")}
+          >
+            Send assessment
+          </Button>
+        ) : null}
+        {isAwaitingCandidate && status === "assessment_invited" ? (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy || resend.isPending}
+            onClick={handleResendInvite}
+          >
+            Resend invite
+          </Button>
+        ) : null}
+        {hasActiveAttempt ? (
+          <Button size="sm" variant="outline" asChild>
+            <Link href={`/assessments/${assessment?.attemptId}`}>
+              {isAwaitingDecision ? "Review & decide" : "View attempt"}
+            </Link>
           </Button>
         ) : null}
         {preOffer ? (
@@ -144,7 +241,7 @@ export function PipelineActions({
             Issue certificate
           </Button>
         ) : null}
-        {status !== "rejected" && status !== "hired" && status !== "completed" ? (
+        {status !== "rejected" && status !== "hired" ? (
           <Button
             size="sm"
             variant="outline"
@@ -155,6 +252,45 @@ export function PipelineActions({
           </Button>
         ) : null}
       </div>
+
+      {panel === "assessment" ? (
+        <div className="space-y-3 rounded-xl border border-admin-border bg-admin-muted/30 p-4">
+          <p className="text-sm font-medium">Send online assessment</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label>Template</Label>
+              <Select value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
+                <option value="">Select a template…</option>
+                {(templates || []).map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.durationMinutes}m, {t.questionIds.length}q)
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <Label>Path</Label>
+              <Select value={path} onChange={(e) => setPath(e.target.value as "test" | "both")}>
+                <option value="test">Test only</option>
+                <option value="both">Both — test then interview</option>
+              </Select>
+            </div>
+          </div>
+          <p className="text-xs text-admin-text-muted">
+            The candidate receives an email with a secure link. They&apos;ll capture a selfie
+            before the timed test starts. No score is shown to them — you decide pass/fail once
+            they submit.
+          </p>
+          <div className="flex gap-2">
+            <Button size="sm" disabled={busy || invite.isPending || !templateId} onClick={handleInvite}>
+              Send invite &amp; email
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setPanel(null)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {panel === "interview" ? (
         <div className="space-y-3 rounded-xl border border-admin-border bg-admin-muted/30 p-4">
