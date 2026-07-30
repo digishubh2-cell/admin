@@ -149,7 +149,7 @@ export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
               </p>
             ) : null}
             <Button variant="outline" size="sm" asChild className="w-full">
-              <Link href={`/applications?applicationId=${attempt.applicationId}`}>
+              <Link href={`/applications/${attempt.applicationId}`}>
                 View application
               </Link>
             </Button>

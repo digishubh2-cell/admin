@@ -44,6 +44,33 @@ export interface ApplicationSource {
   referrer?: string | null;
 }
 
+export interface ApplicationOfferResponse {
+  status?:
+    | "pending"
+    | "accepted_pending_docs"
+    | "accepted"
+    | "rejected"
+    | string
+    | null;
+  decidedAt?: string | null;
+  rejectedAt?: string | null;
+  acceptedAt?: string | null;
+  docsSubmittedAt?: string | null;
+  rejectReason?: string | null;
+}
+
+export interface ApplicationCandidateDocument {
+  id: string;
+  type: string;
+  label?: string | null;
+  fileName?: string | null;
+  fileUrl: string;
+  fileId?: string | null;
+  mimeType?: string | null;
+  size?: number | null;
+  uploadedAt?: string | null;
+}
+
 export interface ApplicationOffer {
   roleTitle?: string | null;
   track?: "internship" | "trainee" | string | null;
@@ -56,9 +83,25 @@ export interface ApplicationOffer {
   location?: string | null;
   mentorName?: string | null;
   offerValidUntil?: string | null;
+  candidateAddress?: string | null;
+  subjectLine?: string | null;
+  greeting?: string | null;
+  introParagraph?: string | null;
+  bodyParagraph?: string | null;
+  bodyParagraphs?: string[] | null;
+  closingParagraph?: string | null;
+  conditions?: string[] | null;
+  signatoryName?: string | null;
+  signatoryTitle?: string | null;
+  companyAddress?: string | null;
+  signatureImageUrl?: string | null;
+  signatureImageFileId?: string | null;
   letterUrl?: string | null;
   letterFileId?: string | null;
   sentAt?: string | null;
+  responseTokenExpiresAt?: string | null;
+  response?: ApplicationOfferResponse;
+  candidateDocuments?: ApplicationCandidateDocument[];
 }
 
 export interface ApplicationHire {
@@ -218,6 +261,19 @@ export interface OfferPayload {
   location?: string | null;
   mentorName?: string | null;
   offerValidUntil?: string | null;
+  candidateAddress?: string | null;
+  subjectLine?: string | null;
+  greeting?: string | null;
+  introParagraph?: string | null;
+  bodyParagraph?: string | null;
+  bodyParagraphs?: string[] | null;
+  closingParagraph?: string | null;
+  conditions?: string[] | null;
+  signatoryName?: string | null;
+  signatoryTitle?: string | null;
+  companyAddress?: string | null;
+  signatureImageUrl?: string | null;
+  signatureImageFileId?: string | null;
   sendEmail?: boolean;
 }
 

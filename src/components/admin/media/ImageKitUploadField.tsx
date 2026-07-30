@@ -43,6 +43,14 @@ interface ImageKitUploadFieldProps {
   disabled?: boolean;
   className?: string;
   hint?: string;
+  /** Override default 8MB limit */
+  maxBytes?: number;
+  /** Override accepted MIME types */
+  accept?: string;
+  /** Thumbnail object-fit (signatures often need contain) */
+  previewFit?: "cover" | "contain";
+  /** Override dropzone min-height class */
+  dropzoneClassName?: string;
 }
 
 function resolveFileId(value?: ImageKitMediaValue | null) {
@@ -57,6 +65,10 @@ export function ImageKitUploadField({
   disabled = false,
   className,
   hint = "JPEG, PNG, WebP, GIF up to 8MB",
+  maxBytes = MAX_BYTES,
+  accept = ACCEPT,
+  previewFit = "cover",
+  dropzoneClassName,
 }: ImageKitUploadFieldProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,6 +80,7 @@ export function ImageKitUploadField({
   const url = value?.url || null;
   const fileId = resolveFileId(value);
   const busy = uploading || deleting || disabled;
+  const maxMbLabel = Math.max(1, Math.round(maxBytes / (1024 * 1024)));
 
   const processFile = useCallback(
     async (file: File) => {
@@ -77,8 +90,8 @@ export function ImageKitUploadField({
         setError("Please choose an image file");
         return;
       }
-      if (file.size > MAX_BYTES) {
-        setError("Image must be 8MB or smaller");
+      if (file.size > maxBytes) {
+        setError(`Image must be ${maxMbLabel}MB or smaller`);
         return;
       }
 
@@ -110,7 +123,7 @@ export function ImageKitUploadField({
         if (inputRef.current) inputRef.current.value = "";
       }
     },
-    [folder, onChange, value]
+    [folder, maxBytes, maxMbLabel, onChange, value]
   );
 
   const handleFiles = useCallback(
@@ -180,6 +193,7 @@ export function ImageKitUploadField({
         }}
         className={cn(
           "relative flex min-h-[180px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-admin-border bg-admin-surface transition-colors",
+          dropzoneClassName,
           dragging && "border-primary bg-primary/5",
           busy && "pointer-events-none opacity-70",
           error && "border-danger/50"
@@ -189,7 +203,7 @@ export function ImageKitUploadField({
           ref={inputRef}
           id={inputId}
           type="file"
-          accept={ACCEPT}
+          accept={accept}
           className="sr-only"
           disabled={busy}
           onChange={(e) => handleFiles(e.target.files)}
@@ -200,7 +214,12 @@ export function ImageKitUploadField({
           <img
             src={url}
             alt="Upload preview"
-            className="absolute inset-0 h-full w-full object-cover"
+            className={cn(
+              "absolute inset-0 h-full w-full",
+              previewFit === "contain"
+                ? "object-contain bg-white p-3"
+                : "object-cover"
+            )}
           />
         ) : (
           <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">

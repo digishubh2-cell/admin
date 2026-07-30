@@ -64,6 +64,8 @@ export function StatusBadge({ status }: { status: string }) {
     pass: "success",
     fail: "danger",
     retake: "warning",
+    accepted_pending_docs: "warning",
+    accepted: "success",
   };
 
   return (

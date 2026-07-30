@@ -151,7 +151,7 @@ export function ApplicationTable({
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => onView(app)}>
                           <Eye className="mr-2 h-4 w-4" />
-                          View details
+                          Open candidate
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {APPLICATION_STATUSES.filter((s) =>

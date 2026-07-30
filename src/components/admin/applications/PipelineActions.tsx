@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAssessmentMutations, useTemplates } from "@/hooks/use-assessments";
+import type { AssessmentAttempt } from "@/types/assessment";
 import type {
   Application,
   ApplicationStatus,
@@ -18,10 +20,15 @@ import type {
   OfferPayload,
   RejectPayload,
 } from "@/types/application";
+import {
+  STAGE_COPY,
+  getPipelinePrimaryAction,
+} from "./pipeline-guidance";
 
 function getErrorMessage(err: unknown) {
   if (err && typeof err === "object" && "response" in err) {
-    const response = (err as { response?: { data?: { message?: string } } }).response;
+    const response = (err as { response?: { data?: { message?: string } } })
+      .response;
     if (response?.data?.message) return response.data.message;
   }
   if (err instanceof Error) return err.message;
@@ -37,6 +44,7 @@ function toDateInput(iso?: string | null) {
 
 interface PipelineActionsProps {
   application: Application;
+  attempt?: AssessmentAttempt | null;
   busy?: boolean;
   onAdvance: (toStatus: ApplicationStatus, sendEmail?: boolean) => void;
   onInterview: (payload: InterviewPayload) => void;
@@ -44,10 +52,13 @@ interface PipelineActionsProps {
   onHire: (payload: HirePayload) => void;
   onComplete: (payload: CompletePayload) => void;
   onReject: (payload: RejectPayload) => void;
+  /** Deep-link to the Offer Letter tab instead of the inline offer panel */
+  onOpenOfferTab?: () => void;
 }
 
 export function PipelineActions({
   application,
+  attempt,
   busy,
   onAdvance,
   onInterview,
@@ -55,9 +66,13 @@ export function PipelineActions({
   onHire,
   onComplete,
   onReject,
+  onOpenOfferTab,
 }: PipelineActionsProps) {
   const status = application.status;
-  const offerLocked = Boolean(application.pipeline?.offer?.letterUrl) ||
+  const stage = STAGE_COPY[status];
+  const primary = getPipelinePrimaryAction(application, attempt);
+  const offerLocked =
+    Boolean(application.pipeline?.offer?.letterUrl) ||
     ["offered", "hired", "completed"].includes(status);
   const preOffer =
     !offerLocked &&
@@ -74,11 +89,18 @@ export function PipelineActions({
   const hasActiveAttempt = Boolean(assessment?.attemptId);
   const canInviteToAssessment =
     !offerLocked && ["new", "under_review", "shortlisted"].includes(status);
-  const isAwaitingCandidate = ["assessment_invited", "assessment_in_progress"].includes(
-    status
-  );
+  const isAwaitingCandidate = [
+    "assessment_invited",
+    "assessment_in_progress",
+  ].includes(status);
   const isAwaitingDecision = status === "assessment_submitted";
-  const bothPathAfterQualify = status === "qualified" && assessment?.path === "both";
+  const bothPathAfterQualify =
+    status === "qualified" && assessment?.path === "both";
+  const assessmentGate = [
+    "assessment_invited",
+    "assessment_in_progress",
+    "assessment_submitted",
+  ].includes(status);
 
   const { data: templates } = useTemplates();
   const { invite, resend } = useAssessmentMutations();
@@ -155,103 +177,276 @@ export function PipelineActions({
 
   if (status === "archived" || status === "completed") {
     return (
-      <p className="text-sm text-admin-text-muted">
-        No further pipeline actions for this stage.
-      </p>
+      <div className="rounded-xl border border-admin-border bg-admin-muted/30 p-4">
+        <p className="text-sm font-medium">{stage?.title || "Closed"}</p>
+        <p className="mt-1 text-sm text-admin-text-muted">
+          {stage?.blurb || "No further pipeline actions for this stage."}
+        </p>
+      </div>
     );
   }
 
   const earlyPreOffer =
     preOffer && ["new", "under_review", "shortlisted"].includes(status);
 
+  const showMarkReview =
+    earlyPreOffer &&
+    status !== "under_review" &&
+    primary?.advanceTo !== "under_review";
+  const showShortlist =
+    earlyPreOffer &&
+    status !== "shortlisted" &&
+    primary?.advanceTo !== "shortlisted";
+  const showInvite =
+    canInviteToAssessment && primary?.panel !== "assessment";
+  const showResendSecondary =
+    isAwaitingCandidate &&
+    status === "assessment_invited" &&
+    !primary?.resendInvite;
+  const showViewAttemptSecondary = hasActiveAttempt && !assessmentGate;
+  const showInterviewSecondary = preOffer && primary?.panel !== "interview";
+  const showOfferSecondary = preOffer && primary?.panel !== "offer";
+  const showHireSecondary = status === "offered" && primary?.panel !== "hire";
+  const showCompleteSecondary =
+    status === "hired" && primary?.panel !== "complete";
+  const showRejectFallback =
+    !primary && status !== "rejected" && status !== "hired";
+  const hasSecondaryActions =
+    showMarkReview ||
+    showShortlist ||
+    showInvite ||
+    showResendSecondary ||
+    showViewAttemptSecondary ||
+    showInterviewSecondary ||
+    showOfferSecondary ||
+    showHireSecondary ||
+    showCompleteSecondary ||
+    showRejectFallback;
+
+  function openOfferComposer() {
+    if (onOpenOfferTab) {
+      onOpenOfferTab();
+      return;
+    }
+    setPanel("offer");
+  }
+
+  function runPrimaryAction() {
+    if (!primary) return;
+    if (primary.panel === "offer") {
+      openOfferComposer();
+      return;
+    }
+    if (primary.panel) {
+      setPanel(primary.panel);
+      return;
+    }
+    if (primary.advanceTo) {
+      onAdvance(primary.advanceTo, primary.advanceSendEmail);
+      return;
+    }
+    if (primary.resendInvite) {
+      void handleResendInvite();
+    }
+  }
+
+  const score =
+    attempt?.autoScore?.total && attempt.autoScore.total > 0
+      ? attempt.autoScore
+      : null;
+
   return (
     <div className="space-y-4">
-      {bothPathAfterQualify ? (
+      {primary ? (
+        <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 sm:p-5">
+          <p className="text-xs font-medium uppercase tracking-wide text-primary">
+            Recommended next step
+          </p>
+          <h3 className="mt-1 text-lg font-semibold tracking-tight">
+            {stage?.title || status.replace(/_/g, " ")}
+          </h3>
+          <p className="mt-1 max-w-2xl text-sm text-admin-text-secondary">
+            {primary.description}
+          </p>
+
+          {isAwaitingDecision && score ? (
+            <div className="mt-4 max-w-md space-y-2 rounded-lg border border-admin-border/80 bg-admin-surface/80 p-3">
+              <div className="flex items-end justify-between gap-2">
+                <div>
+                  <p className="text-xs text-admin-text-muted">Auto score</p>
+                  <p className="text-2xl font-semibold tabular-nums">
+                    {score.percent}%
+                  </p>
+                </div>
+                <p className="text-sm text-admin-text-muted">
+                  {score.correct}/{score.total} correct
+                </p>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-admin-muted">
+                <div
+                  className="h-full rounded-full bg-primary"
+                  style={{ width: `${score.percent}%` }}
+                />
+              </div>
+              <p className="text-xs text-admin-text-muted">
+                Tech {score.breakdown.tech.correct}/{score.breakdown.tech.total}
+                {" · "}
+                Aptitude {score.breakdown.aptitude.correct}/
+                {score.breakdown.aptitude.total}
+              </p>
+            </div>
+          ) : null}
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {primary.href ? (
+              <Button asChild>
+                <Link href={primary.href}>
+                  <CheckCircle2 className="h-4 w-4" />
+                  {primary.label}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                disabled={busy || (primary.resendInvite && resend.isPending)}
+                onClick={runPrimaryAction}
+              >
+                {primary.label}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            )}
+            {status === "assessment_invited" && hasActiveAttempt ? (
+              <Button variant="outline" asChild>
+                <Link href={`/assessments/${assessment?.attemptId}`}>
+                  View attempt
+                </Link>
+              </Button>
+            ) : null}
+            {status !== "rejected" ? (
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={() => setPanel("reject")}
+              >
+                Reject
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {bothPathAfterQualify && !primary ? (
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
           <p className="font-medium">Qualified — Test + Interview path</p>
           <p className="mt-0.5 text-admin-text-muted">
-            This candidate chose the combined path. Schedule the interview below to continue.
+            This candidate chose the combined path. Schedule the interview below
+            to continue.
           </p>
         </div>
       ) : null}
-      <div className="flex flex-wrap gap-2">
-        {earlyPreOffer && status !== "under_review" ? (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={() => onAdvance("under_review", false)}
-          >
-            Mark under review
-          </Button>
-        ) : null}
-        {earlyPreOffer && status !== "shortlisted" ? (
-          <Button
-            size="sm"
-            disabled={busy}
-            onClick={() => onAdvance("shortlisted", true)}
-          >
-            Shortlist &amp; email
-          </Button>
-        ) : null}
-        {canInviteToAssessment ? (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={() => setPanel("assessment")}
-          >
-            Send assessment
-          </Button>
-        ) : null}
-        {isAwaitingCandidate && status === "assessment_invited" ? (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy || resend.isPending}
-            onClick={handleResendInvite}
-          >
-            Resend invite
-          </Button>
-        ) : null}
-        {hasActiveAttempt ? (
-          <Button size="sm" variant="outline" asChild>
-            <Link href={`/assessments/${assessment?.attemptId}`}>
-              {isAwaitingDecision ? "Review & decide" : "View attempt"}
-            </Link>
-          </Button>
-        ) : null}
-        {preOffer ? (
-          <Button size="sm" disabled={busy} onClick={() => setPanel("interview")}>
-            Schedule interview
-          </Button>
-        ) : null}
-        {preOffer ? (
-          <Button size="sm" disabled={busy} onClick={() => setPanel("offer")}>
-            Generate offer
-          </Button>
-        ) : null}
-        {status === "offered" ? (
-          <Button size="sm" disabled={busy} onClick={() => setPanel("hire")}>
-            Mark hired
-          </Button>
-        ) : null}
-        {status === "hired" ? (
-          <Button size="sm" disabled={busy} onClick={() => setPanel("complete")}>
-            Issue certificate
-          </Button>
-        ) : null}
-        {status !== "rejected" && status !== "hired" ? (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={() => setPanel("reject")}
-          >
-            Reject
-          </Button>
-        ) : null}
+
+      {hasSecondaryActions ? (
+      <div>
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-admin-text-muted">
+          {assessmentGate ? "Other actions" : "All actions"}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {showMarkReview ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => onAdvance("under_review", false)}
+            >
+              Mark under review
+            </Button>
+          ) : null}
+          {showShortlist ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => onAdvance("shortlisted", true)}
+            >
+              Shortlist &amp; email
+            </Button>
+          ) : null}
+          {showInvite ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => setPanel("assessment")}
+            >
+              Send assessment
+            </Button>
+          ) : null}
+          {showResendSecondary ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy || resend.isPending}
+              onClick={handleResendInvite}
+            >
+              Resend invite
+            </Button>
+          ) : null}
+          {showViewAttemptSecondary ? (
+            <Button size="sm" variant="outline" asChild>
+              <Link href={`/assessments/${assessment?.attemptId}`}>
+                View attempt
+              </Link>
+            </Button>
+          ) : null}
+          {showInterviewSecondary ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => setPanel("interview")}
+            >
+              Schedule interview
+            </Button>
+          ) : null}
+          {showOfferSecondary ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={openOfferComposer}
+            >
+              Generate offer
+            </Button>
+          ) : null}
+          {showHireSecondary ? (
+            <Button size="sm" disabled={busy} onClick={() => setPanel("hire")}>
+              Mark hired
+            </Button>
+          ) : null}
+          {showCompleteSecondary ? (
+            <Button
+              size="sm"
+              disabled={busy}
+              onClick={() => setPanel("complete")}
+            >
+              Issue certificate
+            </Button>
+          ) : null}
+          {showRejectFallback ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => setPanel("reject")}
+            >
+              Reject
+            </Button>
+          ) : null}
+        </div>
       </div>
+      ) : assessmentGate && stage?.blurb ? (
+        <p className="text-xs text-admin-text-muted">{stage.blurb}</p>
+      ) : null}
 
       {panel === "assessment" ? (
         <div className="space-y-3 rounded-xl border border-admin-border bg-admin-muted/30 p-4">
@@ -259,7 +454,10 @@ export function PipelineActions({
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label>Template</Label>
-              <Select value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
+              <Select
+                value={templateId}
+                onChange={(e) => setTemplateId(e.target.value)}
+              >
                 <option value="">Select a template…</option>
                 {(templates || []).map((t) => (
                   <option key={t.id} value={t.id}>
@@ -270,19 +468,26 @@ export function PipelineActions({
             </div>
             <div>
               <Label>Path</Label>
-              <Select value={path} onChange={(e) => setPath(e.target.value as "test" | "both")}>
+              <Select
+                value={path}
+                onChange={(e) => setPath(e.target.value as "test" | "both")}
+              >
                 <option value="test">Test only</option>
                 <option value="both">Both — test then interview</option>
               </Select>
             </div>
           </div>
           <p className="text-xs text-admin-text-muted">
-            The candidate receives an email with a secure link. They&apos;ll capture a selfie
-            before the timed test starts. No score is shown to them — you decide pass/fail once
-            they submit.
+            The candidate receives an email with a secure link. They&apos;ll
+            capture a selfie before the timed test starts. No score is shown to
+            them — you decide pass/fail once they submit.
           </p>
           <div className="flex gap-2">
-            <Button size="sm" disabled={busy || invite.isPending || !templateId} onClick={handleInvite}>
+            <Button
+              size="sm"
+              disabled={busy || invite.isPending || !templateId}
+              onClick={handleInvite}
+            >
               Send invite &amp; email
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setPanel(null)}>
@@ -339,7 +544,10 @@ export function PipelineActions({
                 rows={2}
                 value={interview.interviewNotes}
                 onChange={(e) =>
-                  setInterview((s) => ({ ...s, interviewNotes: e.target.value }))
+                  setInterview((s) => ({
+                    ...s,
+                    interviewNotes: e.target.value,
+                  }))
                 }
               />
             </div>
@@ -681,7 +889,6 @@ export function PipelineActions({
           </div>
         </div>
       ) : null}
-
     </div>
   );
 }

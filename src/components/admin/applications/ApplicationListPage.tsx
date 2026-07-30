@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
-  useApplication,
   useApplicationMutations,
   useApplications,
   useApplicationStats,
@@ -13,16 +12,10 @@ import type {
   Application,
   ApplicationListParams,
   ApplicationStatus,
-  CompletePayload,
-  HirePayload,
-  InterviewPayload,
-  OfferPayload,
-  RejectPayload,
 } from "@/types/application";
 import { ApplicationFilters } from "./ApplicationFilters";
 import { ApplicationStatsCards } from "./ApplicationStatsCards";
 import { ApplicationTable } from "./ApplicationTable";
-import { ApplicationDetailDrawer } from "./ApplicationDetailDrawer";
 import { Button } from "@/components/ui/button";
 
 function getErrorMessage(err: unknown) {
@@ -36,110 +29,71 @@ function getErrorMessage(err: unknown) {
 }
 
 export function ApplicationListPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const deepLinkId = searchParams.get("applicationId");
+
   const [params, setParams] = useState<ApplicationListParams>({
     page: 1,
     limit: 20,
     sortBy: "createdAt",
     sortOrder: "desc",
   });
-  const [selected, setSelected] = useState<Application | null>(null);
-  const [notes, setNotes] = useState("");
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { data: stats, isLoading: statsLoading } = useApplicationStats();
   const { data, isLoading } = useApplications(params);
   const mutations = useApplicationMutations();
 
-  const searchParams = useSearchParams();
-  const deepLinkId = searchParams.get("applicationId");
-  const { data: deepLinkApplication } = useApplication(deepLinkId || "");
-
   useEffect(() => {
-    if (deepLinkId && deepLinkApplication) {
-      setSelected(deepLinkApplication);
-      setNotes(deepLinkApplication.notes || "");
-      setDrawerOpen(true);
+    if (deepLinkId) {
+      router.replace(`/applications/${deepLinkId}`);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deepLinkId, deepLinkApplication]);
-
-  const pipelineBusy =
-    mutations.advance.isPending ||
-    mutations.interview.isPending ||
-    mutations.offer.isPending ||
-    mutations.hire.isPending ||
-    mutations.complete.isPending ||
-    mutations.reject.isPending;
+  }, [deepLinkId, router]);
 
   function handleView(application: Application) {
-    setSelected(application);
-    setNotes(application.notes || "");
-    setDrawerOpen(true);
+    router.push(`/applications/${application.id}`);
   }
 
   async function handleStatusChange(id: string, status: ApplicationStatus) {
     try {
-      // Simple statuses via advance when possible; archived via delete
       if (status === "archived") {
         await mutations.remove.mutateAsync(id);
         toast.success("Application archived");
-        if (selected?.id === id) {
-          setDrawerOpen(false);
-          setSelected(null);
-        }
         return;
       }
 
       if (["offered", "hired", "completed"].includes(status)) {
-        toast.message("Open the candidate and use the pipeline action for this stage");
+        toast.message(
+          "Open the candidate page and use the pipeline action for this stage"
+        );
+        router.push(`/applications/${id}`);
         return;
       }
 
       if (status === "rejected") {
-        const updated = await mutations.reject.mutateAsync({
+        await mutations.reject.mutateAsync({
           id,
           payload: { sendEmail: false },
         });
         toast.success("Marked as rejected");
-        if (selected?.id === id) setSelected(updated);
         return;
       }
 
-      // Pre-offer: free moves via advance (emails only when shortlisting)
-      if (
-        ["new", "under_review", "shortlisted"].includes(status)
-      ) {
-        const updated = await mutations.advance.mutateAsync({
+      if (["new", "under_review", "shortlisted"].includes(status)) {
+        await mutations.advance.mutateAsync({
           id,
           toStatus: status,
           sendEmail: status === "shortlisted",
         });
         toast.success(`Marked as ${status.replace(/_/g, " ")}`);
-        if (selected?.id === id) setSelected(updated);
         return;
       }
 
-      // interview status without invite form (invite uses pipeline action)
-      const updated = await mutations.update.mutateAsync({
+      await mutations.update.mutateAsync({
         id,
         payload: { status },
       });
       toast.success(`Marked as ${status.replace(/_/g, " ")}`);
-      if (selected?.id === id) setSelected(updated);
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    }
-  }
-
-  async function handleSaveNotes() {
-    if (!selected) return;
-    try {
-      const updated = await mutations.update.mutateAsync({
-        id: selected.id,
-        payload: { notes },
-      });
-      setSelected(updated);
-      toast.success("Notes saved");
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -150,97 +104,6 @@ export function ApplicationListPage() {
     try {
       await mutations.remove.mutateAsync(id);
       toast.success("Application archived");
-      if (selected?.id === id) {
-        setDrawerOpen(false);
-        setSelected(null);
-      }
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    }
-  }
-
-  async function handleAdvance(toStatus: ApplicationStatus, sendEmail = true) {
-    if (!selected) return;
-    try {
-      const updated = await mutations.advance.mutateAsync({
-        id: selected.id,
-        toStatus,
-        sendEmail,
-      });
-      setSelected(updated);
-      toast.success(`Moved to ${toStatus.replace(/_/g, " ")}`);
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    }
-  }
-
-  async function handleInterview(payload: InterviewPayload) {
-    if (!selected) return;
-    try {
-      const updated = await mutations.interview.mutateAsync({
-        id: selected.id,
-        payload,
-      });
-      setSelected(updated);
-      toast.success("Interview invite sent");
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    }
-  }
-
-  async function handleOffer(payload: OfferPayload) {
-    if (!selected) return;
-    try {
-      toast.message("Generating offer PDF…");
-      const updated = await mutations.offer.mutateAsync({
-        id: selected.id,
-        payload,
-      });
-      setSelected(updated);
-      toast.success("Offer letter sent");
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    }
-  }
-
-  async function handleHire(payload: HirePayload) {
-    if (!selected) return;
-    try {
-      const updated = await mutations.hire.mutateAsync({
-        id: selected.id,
-        payload,
-      });
-      setSelected(updated);
-      toast.success("Marked hired — welcome email sent");
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    }
-  }
-
-  async function handleComplete(payload: CompletePayload) {
-    if (!selected) return;
-    try {
-      toast.message("Generating certificate…");
-      const updated = await mutations.complete.mutateAsync({
-        id: selected.id,
-        payload,
-      });
-      setSelected(updated);
-      toast.success("Certificate issued and emailed");
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    }
-  }
-
-  async function handleReject(payload: RejectPayload) {
-    if (!selected) return;
-    try {
-      const updated = await mutations.reject.mutateAsync({
-        id: selected.id,
-        payload,
-      });
-      setSelected(updated);
-      toast.success("Candidate rejected");
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -251,7 +114,8 @@ export function ApplicationListPage() {
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Applications</h1>
         <p className="mt-1 text-admin-text-secondary">
-          Internship / trainee hiring pipeline — shortlist, interview, offer, hire, and certify.
+          Internship / trainee hiring pipeline — shortlist, interview, offer,
+          hire, and certify.
         </p>
       </div>
 
@@ -295,23 +159,6 @@ export function ApplicationListPage() {
           </div>
         </div>
       )}
-
-      <ApplicationDetailDrawer
-        application={selected}
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        notes={notes}
-        onNotesChange={setNotes}
-        onSaveNotes={handleSaveNotes}
-        saving={mutations.update.isPending}
-        pipelineBusy={pipelineBusy}
-        onAdvance={handleAdvance}
-        onInterview={handleInterview}
-        onOffer={handleOffer}
-        onHire={handleHire}
-        onComplete={handleComplete}
-        onReject={handleReject}
-      />
     </div>
   );
 }
