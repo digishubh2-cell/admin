@@ -57,6 +57,13 @@ export interface LeadListParams {
   sortOrder?: "asc" | "desc";
 }
 
+export interface LeadNotificationSettings {
+  id: string;
+  notificationEmails: string[];
+  updatedAt?: string | null;
+  updatedBy?: string | null;
+}
+
 export interface PaginatedLeads {
   items: Lead[];
   pagination: {

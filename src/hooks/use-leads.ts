@@ -4,9 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   deleteLead,
   fetchLead,
+  fetchLeadNotificationSettings,
   fetchLeads,
   fetchLeadStats,
   updateLead,
+  updateLeadNotificationSettings,
 } from "@/lib/api/leads";
 import type { LeadListParams } from "@/types/lead";
 
@@ -32,6 +34,14 @@ export function useLead(id: string) {
   });
 }
 
+export function useLeadNotificationSettings(enabled = true) {
+  return useQuery({
+    queryKey: ["leads", "settings"],
+    queryFn: fetchLeadNotificationSettings,
+    enabled,
+  });
+}
+
 export function useLeadMutations() {
   const queryClient = useQueryClient();
   const invalidate = () =>
@@ -51,6 +61,11 @@ export function useLeadMutations() {
     remove: useMutation({
       mutationFn: deleteLead,
       onSuccess: invalidate,
+    }),
+    updateNotificationSettings: useMutation({
+      mutationFn: updateLeadNotificationSettings,
+      onSuccess: () =>
+        queryClient.invalidateQueries({ queryKey: ["leads", "settings"] }),
     }),
   };
 }

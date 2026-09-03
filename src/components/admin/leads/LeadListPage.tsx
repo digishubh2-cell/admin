@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useLeadMutations, useLeads, useLeadStats } from "@/hooks/use-leads";
 import type { LeadListParams, LeadStatus } from "@/types/lead";
 import { LeadFilters } from "./LeadFilters";
 import { LeadStatsCards } from "./LeadStatsCards";
 import { LeadTable } from "./LeadTable";
+import { LeadNotificationDialog } from "./LeadNotificationDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -21,6 +23,7 @@ export function LeadListPage() {
   const { data: stats, isLoading: statsLoading } = useLeadStats();
   const { data, isLoading } = useLeads(params);
   const { update, remove } = useLeadMutations();
+  const [notifyOpen, setNotifyOpen] = useState(false);
 
   async function handleStatusChange(id: string, status: LeadStatus) {
     try {
@@ -43,11 +46,17 @@ export function LeadListPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Leads</h1>
-        <p className="mt-1 text-admin-text-secondary">
-          Inquiries from site forms — including which page and CTA generated each lead.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Leads</h1>
+          <p className="mt-1 text-admin-text-secondary">
+            Inquiries from site forms — including which page and CTA generated each lead.
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => setNotifyOpen(true)}>
+          <Mail className="h-4 w-4" />
+          Email notifications
+        </Button>
       </div>
 
       <LeadStatsCards stats={stats} isLoading={statsLoading} />
@@ -107,6 +116,8 @@ export function LeadListPage() {
           </div>
         </div>
       )}
+
+      <LeadNotificationDialog open={notifyOpen} onOpenChange={setNotifyOpen} />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { apiClient } from "./client";
 import type {
   Lead,
   LeadListParams,
+  LeadNotificationSettings,
   LeadStats,
   PaginatedLeads,
 } from "@/types/lead";
@@ -12,6 +13,7 @@ interface ApiResponse {
   lead?: Lead;
   items?: Lead[];
   stats?: LeadStats;
+  settings?: LeadNotificationSettings;
   pagination?: PaginatedLeads["pagination"];
 }
 
@@ -43,4 +45,16 @@ export async function updateLead(
 export async function deleteLead(id: string) {
   const { data } = await apiClient.delete<ApiResponse>(`/leads/${id}`);
   return data;
+}
+
+export async function fetchLeadNotificationSettings() {
+  const { data } = await apiClient.get<ApiResponse>("/leads/settings");
+  return data.settings!;
+}
+
+export async function updateLeadNotificationSettings(notificationEmails: string[]) {
+  const { data } = await apiClient.put<ApiResponse>("/leads/settings", {
+    notificationEmails,
+  });
+  return data.settings!;
 }
