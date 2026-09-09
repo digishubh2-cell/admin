@@ -13,6 +13,7 @@ interface ApiResponse<T = unknown> {
   items?: CaseStudy[];
   stats?: CaseStudyStats;
   pagination?: PaginatedCaseStudies["pagination"];
+  cacheInvalidation?: { success: boolean; error?: string };
 }
 
 export async function fetchCaseStudyStats() {
@@ -34,12 +35,12 @@ export async function fetchCaseStudy(id: string) {
 
 export async function createCaseStudy(payload: Record<string, unknown>) {
   const { data } = await apiClient.post<ApiResponse>("/case-studies", payload);
-  return data.caseStudy!;
+  return { ...data.caseStudy!, cacheInvalidation: data.cacheInvalidation };
 }
 
 export async function updateCaseStudy(id: string, payload: Record<string, unknown>) {
   const { data } = await apiClient.patch<ApiResponse>(`/case-studies/${id}`, payload);
-  return data.caseStudy!;
+  return { ...data.caseStudy!, cacheInvalidation: data.cacheInvalidation };
 }
 
 export async function deleteCaseStudy(id: string) {
@@ -49,7 +50,7 @@ export async function deleteCaseStudy(id: string) {
 
 export async function duplicateCaseStudy(id: string) {
   const { data } = await apiClient.post<ApiResponse>(`/case-studies/${id}/duplicate`);
-  return data.caseStudy!;
+  return { ...data.caseStudy!, cacheInvalidation: data.cacheInvalidation };
 }
 
 export async function restoreCaseStudy(id: string) {

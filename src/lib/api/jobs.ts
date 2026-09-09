@@ -8,6 +8,7 @@ interface ApiResponse {
   items?: Job[];
   stats?: JobStats;
   pagination?: PaginatedJobs["pagination"];
+  cacheInvalidation?: { success: boolean; error?: string };
 }
 
 export async function fetchJobStats() {
@@ -29,12 +30,12 @@ export async function fetchJob(id: string) {
 
 export async function createJob(payload: Record<string, unknown>) {
   const { data } = await apiClient.post<ApiResponse>("/jobs", payload);
-  return data.job!;
+  return { ...data.job!, cacheInvalidation: data.cacheInvalidation };
 }
 
 export async function updateJob(id: string, payload: Record<string, unknown>) {
   const { data } = await apiClient.patch<ApiResponse>(`/jobs/${id}`, payload);
-  return data.job!;
+  return { ...data.job!, cacheInvalidation: data.cacheInvalidation };
 }
 
 export async function deleteJob(id: string) {
@@ -44,7 +45,7 @@ export async function deleteJob(id: string) {
 
 export async function duplicateJob(id: string) {
   const { data } = await apiClient.post<ApiResponse>(`/jobs/${id}/duplicate`);
-  return data.job!;
+  return { ...data.job!, cacheInvalidation: data.cacheInvalidation };
 }
 
 export async function restoreJob(id: string) {

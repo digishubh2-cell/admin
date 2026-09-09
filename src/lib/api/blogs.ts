@@ -18,6 +18,7 @@ interface ApiResponse<T = unknown> {
   tags?: BlogTag[];
   pagination?: PaginatedBlogs["pagination"];
   errors?: Record<string, string[]>;
+  cacheInvalidation?: { success: boolean; error?: string };
 }
 
 export async function fetchBlogStats() {
@@ -42,12 +43,12 @@ export async function fetchBlog(id: string) {
 
 export async function createBlog(payload: Record<string, unknown>) {
   const { data } = await apiClient.post<ApiResponse>("/blogs", payload);
-  return data.blog!;
+  return { ...data.blog!, cacheInvalidation: data.cacheInvalidation };
 }
 
 export async function updateBlog(id: string, payload: Record<string, unknown>) {
   const { data } = await apiClient.patch<ApiResponse>(`/blogs/${id}`, payload);
-  return data.blog!;
+  return { ...data.blog!, cacheInvalidation: data.cacheInvalidation };
 }
 
 export async function deleteBlog(id: string) {
@@ -57,7 +58,7 @@ export async function deleteBlog(id: string) {
 
 export async function duplicateBlog(id: string) {
   const { data } = await apiClient.post<ApiResponse>(`/blogs/${id}/duplicate`);
-  return data.blog!;
+  return { ...data.blog!, cacheInvalidation: data.cacheInvalidation };
 }
 
 export async function restoreBlog(id: string) {

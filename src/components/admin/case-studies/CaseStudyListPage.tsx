@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { warnIfCacheFailed } from "@/lib/cache/afterMutation";
 import { useCaseStudies, useCaseStudyMutations, useCaseStudyStats } from "@/hooks/use-case-studies";
 import type { CaseStudyListParams } from "@/types/case-study";
 import { CaseStudyFilters } from "./CaseStudyFilters";
@@ -27,6 +28,7 @@ export function CaseStudyListPage() {
     try {
       const cs = await duplicate.mutateAsync(id);
       toast.success(`Duplicated: ${cs.projectName}`);
+      warnIfCacheFailed(cs);
     } catch {
       toast.error("Failed to duplicate case study");
     }
@@ -35,8 +37,9 @@ export function CaseStudyListPage() {
   async function handleDelete(id: string) {
     if (!confirm("Archive this case study?")) return;
     try {
-      await remove.mutateAsync(id);
+      const result = await remove.mutateAsync(id);
       toast.success("Case study archived");
+      warnIfCacheFailed(result);
     } catch {
       toast.error("Failed to archive case study");
     }

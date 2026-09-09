@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Download, Plus, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { warnIfCacheFailed } from "@/lib/cache/afterMutation";
 import {
   useBlogCategories,
   useBlogMutations,
@@ -38,6 +39,7 @@ export function BlogListPage() {
     try {
       const blog = await duplicate.mutateAsync(id);
       toast.success(`Duplicated: ${blog.title}`);
+      warnIfCacheFailed(blog);
     } catch {
       toast.error("Failed to duplicate blog");
     }
@@ -46,8 +48,9 @@ export function BlogListPage() {
   async function handleDelete(id: string) {
     if (!confirm("Archive this blog post?")) return;
     try {
-      await remove.mutateAsync(id);
+      const result = await remove.mutateAsync(id);
       toast.success("Blog archived");
+      warnIfCacheFailed(result);
     } catch {
       toast.error("Failed to archive blog");
     }

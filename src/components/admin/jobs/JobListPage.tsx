@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { warnIfCacheFailed } from "@/lib/cache/afterMutation";
 import { useJobMutations, useJobs, useJobStats } from "@/hooks/use-jobs";
 import type { JobListParams } from "@/types/job";
 import { JobFilters } from "./JobFilters";
@@ -27,6 +28,7 @@ export function JobListPage() {
     try {
       const job = await duplicate.mutateAsync(id);
       toast.success(`Duplicated: ${job.title}`);
+      warnIfCacheFailed(job);
     } catch {
       toast.error("Failed to duplicate job");
     }
@@ -35,8 +37,9 @@ export function JobListPage() {
   async function handleDelete(id: string) {
     if (!confirm("Archive this job?")) return;
     try {
-      await remove.mutateAsync(id);
+      const result = await remove.mutateAsync(id);
       toast.success("Job archived");
+      warnIfCacheFailed(result);
     } catch {
       toast.error("Failed to archive job");
     }

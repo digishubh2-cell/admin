@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { warnIfCacheFailed } from "@/lib/cache/afterMutation";
 import { useTestimonials, useTestimonialMutations, useTestimonialStats } from "@/hooks/use-testimonials";
 import type { TestimonialListParams } from "@/types/testimonial";
 import { TestimonialFilters } from "./TestimonialFilters";
@@ -27,6 +28,7 @@ export function TestimonialListPage() {
     try {
       const t = await duplicate.mutateAsync(id);
       toast.success(`Duplicated: ${t.fullName}`);
+      warnIfCacheFailed(t);
     } catch {
       toast.error("Failed to duplicate testimonial");
     }
@@ -35,8 +37,9 @@ export function TestimonialListPage() {
   async function handleDelete(id: string) {
     if (!confirm("Archive this testimonial?")) return;
     try {
-      await remove.mutateAsync(id);
+      const result = await remove.mutateAsync(id);
       toast.success("Testimonial archived");
+      warnIfCacheFailed(result);
     } catch {
       toast.error("Failed to archive testimonial");
     }

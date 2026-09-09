@@ -17,6 +17,7 @@ interface ApiResponse<T = unknown> {
   languages?: string[];
   pagination?: PaginatedTestimonials["pagination"];
   count?: number;
+  cacheInvalidation?: { success: boolean; error?: string };
 }
 
 export async function fetchTestimonialStats() {
@@ -41,12 +42,12 @@ export async function fetchTestimonial(id: string) {
 
 export async function createTestimonial(payload: Record<string, unknown>) {
   const { data } = await apiClient.post<ApiResponse>("/testimonials", payload);
-  return data.testimonial!;
+  return { ...data.testimonial!, cacheInvalidation: data.cacheInvalidation };
 }
 
 export async function updateTestimonial(id: string, payload: Record<string, unknown>) {
   const { data } = await apiClient.patch<ApiResponse>(`/testimonials/${id}`, payload);
-  return data.testimonial!;
+  return { ...data.testimonial!, cacheInvalidation: data.cacheInvalidation };
 }
 
 export async function deleteTestimonial(id: string) {
@@ -56,7 +57,7 @@ export async function deleteTestimonial(id: string) {
 
 export async function duplicateTestimonial(id: string) {
   const { data } = await apiClient.post<ApiResponse>(`/testimonials/${id}/duplicate`);
-  return data.testimonial!;
+  return { ...data.testimonial!, cacheInvalidation: data.cacheInvalidation };
 }
 
 export async function restoreTestimonial(id: string) {

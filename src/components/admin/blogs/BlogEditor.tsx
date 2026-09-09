@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { warnIfCacheFailed } from "@/lib/cache/afterMutation";
 import {
   useBlog,
   useBlogCategories,
@@ -121,11 +122,13 @@ export function BlogEditor({ blogId }: BlogEditorProps) {
 
     try {
       if (isEdit && blogId) {
-        await update.mutateAsync({ id: blogId, payload });
+        const blog = await update.mutateAsync({ id: blogId, payload });
         toast.success("Blog saved");
+        warnIfCacheFailed(blog);
       } else {
         const blog = await create.mutateAsync(payload);
         toast.success("Blog created");
+        warnIfCacheFailed(blog);
         router.push(`/blogs/${blog.id}/edit`);
       }
     } catch {

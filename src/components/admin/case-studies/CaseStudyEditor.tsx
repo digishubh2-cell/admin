@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { warnIfCacheFailed } from "@/lib/cache/afterMutation";
 import { useCaseStudy, useCaseStudyMutations } from "@/hooks/use-case-studies";
 import type { CaseStudy } from "@/types/case-study";
 import { estimateCaseStudySeoScore, estimateReadTime, slugify } from "@/lib/case-study/utils";
@@ -60,11 +61,13 @@ export function CaseStudyEditor({ caseStudyId }: Props) {
   async function onSubmit(data: Partial<CaseStudy>) {
     try {
       if (isEdit && caseStudyId) {
-        await update.mutateAsync({ id: caseStudyId, payload: { ...data, readTimeMinutes: readTime } });
+        const cs = await update.mutateAsync({ id: caseStudyId, payload: { ...data, readTimeMinutes: readTime } });
         toast.success("Case study saved");
+        warnIfCacheFailed(cs);
       } else {
         const cs = await create.mutateAsync({ ...data, readTimeMinutes: readTime });
         toast.success("Case study created");
+        warnIfCacheFailed(cs);
         router.push(`/case-studies/${cs.id}/edit`);
       }
     } catch {

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { warnIfCacheFailed } from "@/lib/cache/afterMutation";
 import { useTestimonial, useTestimonialMutations } from "@/hooks/use-testimonials";
 import type { Testimonial } from "@/types/testimonial";
 import { estimateTestimonialSeoScore, slugify } from "@/lib/testimonial/utils";
@@ -61,11 +62,13 @@ export function TestimonialEditor({ testimonialId }: Props) {
   async function onSubmit(data: Partial<Testimonial>) {
     try {
       if (isEdit && testimonialId) {
-        await update.mutateAsync({ id: testimonialId, payload: data });
+        const t = await update.mutateAsync({ id: testimonialId, payload: data });
         toast.success("Testimonial saved");
+        warnIfCacheFailed(t);
       } else {
         const t = await create.mutateAsync(data);
         toast.success("Testimonial created");
+        warnIfCacheFailed(t);
         router.push(`/testimonials/${t.id}/edit`);
       }
     } catch {

@@ -11,16 +11,19 @@ export function middleware(request: NextRequest) {
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
   const accessToken = request.cookies.get(AUTH_COOKIE.access);
+  const refreshToken = request.cookies.get(AUTH_COOKIE.refresh);
+  const hasSession = Boolean(accessToken || refreshToken);
 
-  // No cookie → protect dashboard routes (bounce to login with redirect=).
-  if (!isPublicRoute && !accessToken) {
+  // No access or refresh cookie → bounce to login.
+  // Refresh alone is enough: client axios interceptor /auth/refresh renews access.
+  if (!isPublicRoute && !hasSession) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   // Already signed in → leave /login for the dashboard (hard nav after login).
-  if (pathname === "/login" && accessToken) {
+  if (pathname === "/login" && hasSession) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 

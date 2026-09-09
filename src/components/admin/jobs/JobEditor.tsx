@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { warnIfCacheFailed } from "@/lib/cache/afterMutation";
 import { useJob, useJobMutations } from "@/hooks/use-jobs";
 import type { Job } from "@/types/job";
 import { slugify } from "@/lib/case-study/utils";
@@ -53,11 +54,13 @@ export function JobEditor({ jobId }: Props) {
   async function onSubmit(data: Partial<Job>) {
     try {
       if (isEdit && jobId) {
-        await update.mutateAsync({ id: jobId, payload: data });
+        const job = await update.mutateAsync({ id: jobId, payload: data });
         toast.success("Job saved");
+        warnIfCacheFailed(job);
       } else {
         const job = await create.mutateAsync(data);
         toast.success("Job created");
+        warnIfCacheFailed(job);
         router.push(`/jobs/${job.id}/edit`);
       }
     } catch {
