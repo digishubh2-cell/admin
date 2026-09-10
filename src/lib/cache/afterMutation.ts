@@ -14,6 +14,14 @@ export function publicCacheFailureMessage(
   return "Saved to database, but public site not refreshed. New content may take up to 24 hours to appear.";
 }
 
+function isCacheResult(
+  value:
+    | CacheInvalidationResult
+    | { cacheInvalidation?: CacheInvalidationResult | null }
+): value is CacheInvalidationResult {
+  return !("cacheInvalidation" in value);
+}
+
 export function warnIfCacheFailed(
   result?:
     | CacheInvalidationResult
@@ -21,8 +29,9 @@ export function warnIfCacheFailed(
     | null
 ): void {
   if (!result) return;
-  const inv =
-    "cacheInvalidation" in result ? result.cacheInvalidation : result;
+  const inv: CacheInvalidationResult | null | undefined = isCacheResult(result)
+    ? result
+    : result.cacheInvalidation;
   if (inv && inv.success === false) {
     toast.warning(publicCacheFailureMessage(inv));
   }
