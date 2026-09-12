@@ -424,15 +424,38 @@ export function ApplicationDetailPage({
     }
   }
 
-  async function handleAdvance(toStatus: ApplicationStatus, sendEmail = true) {
+  function toastPipelineResult(
+    successMessage: string,
+    skippedEmailMessage: string,
+    sendEmail: boolean | undefined,
+    emailWarning?: string | null
+  ) {
+    if (emailWarning) {
+      toast.warning(`${successMessage}, but the email failed: ${emailWarning}`);
+      return;
+    }
+    toast.success(sendEmail === false ? skippedEmailMessage : successMessage);
+  }
+
+  async function handleAdvance(
+    toStatus: ApplicationStatus,
+    sendEmail = true,
+    notes?: string | null
+  ) {
     if (!application) return;
     try {
-      await mutations.advance.mutateAsync({
+      const result = await mutations.advance.mutateAsync({
         id: application.id,
         toStatus,
         sendEmail,
+        notes,
       });
-      toast.success(`Moved to ${toStatus.replace(/_/g, " ")}`);
+      toastPipelineResult(
+        `Moved to ${toStatus.replace(/_/g, " ")}`,
+        `Moved to ${toStatus.replace(/_/g, " ")}`,
+        sendEmail,
+        result.emailWarning
+      );
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -441,11 +464,16 @@ export function ApplicationDetailPage({
   async function handleInterview(payload: InterviewPayload) {
     if (!application) return;
     try {
-      await mutations.interview.mutateAsync({
+      const result = await mutations.interview.mutateAsync({
         id: application.id,
         payload,
       });
-      toast.success("Interview invite sent");
+      toastPipelineResult(
+        "Interview invite sent",
+        "Interview scheduled",
+        payload.sendEmail,
+        result.emailWarning
+      );
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -455,11 +483,16 @@ export function ApplicationDetailPage({
     if (!application) return;
     try {
       toast.message("Generating offer PDF…");
-      await mutations.offer.mutateAsync({
+      const result = await mutations.offer.mutateAsync({
         id: application.id,
         payload,
       });
-      toast.success("Offer letter sent");
+      toastPipelineResult(
+        "Offer letter sent",
+        "Offer letter generated",
+        payload.sendEmail,
+        result.emailWarning
+      );
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -468,11 +501,16 @@ export function ApplicationDetailPage({
   async function handleHire(payload: HirePayload) {
     if (!application) return;
     try {
-      await mutations.hire.mutateAsync({
+      const result = await mutations.hire.mutateAsync({
         id: application.id,
         payload,
       });
-      toast.success("Marked hired — welcome email sent");
+      toastPipelineResult(
+        "Marked hired — welcome email sent",
+        "Marked hired",
+        payload.sendEmail,
+        result.emailWarning
+      );
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -482,11 +520,16 @@ export function ApplicationDetailPage({
     if (!application) return;
     try {
       toast.message("Generating certificate…");
-      await mutations.complete.mutateAsync({
+      const result = await mutations.complete.mutateAsync({
         id: application.id,
         payload,
       });
-      toast.success("Certificate issued and emailed");
+      toastPipelineResult(
+        "Certificate issued and emailed",
+        "Certificate issued",
+        payload.sendEmail,
+        result.emailWarning
+      );
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -1057,7 +1100,7 @@ export function ApplicationDetailPage({
                       label="Type"
                       value={
                         attempt.kind === "pdf"
-                          ? "PDF document"
+                          ? "Document file"
                           : "Online test"
                       }
                     />
@@ -1067,7 +1110,7 @@ export function ApplicationDetailPage({
                     />
                     {attempt.kind === "pdf" && attempt.pdf?.url ? (
                       <div>
-                        <p className="text-xs text-admin-text-muted">PDF</p>
+                        <p className="text-xs text-admin-text-muted">Document</p>
                         <Button
                           variant="outline"
                           size="sm"
@@ -1080,7 +1123,7 @@ export function ApplicationDetailPage({
                             rel="noopener noreferrer"
                           >
                             <Download className="h-4 w-4" />
-                            {attempt.pdf.name || "Open PDF"}
+                            {attempt.pdf.originalName || attempt.pdf.name || "Open document"}
                           </a>
                         </Button>
                       </div>
@@ -1109,7 +1152,7 @@ export function ApplicationDetailPage({
 
                   {attempt.kind === "pdf" ? (
                     <div className="rounded-xl border border-admin-border p-4 text-sm text-admin-text-muted">
-                      PDF assessments have no auto score. Review the document
+                      Document assessments have no auto score. Review the file
                       the candidate received, then mark pass or fail from the
                       attempt page.
                     </div>

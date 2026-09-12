@@ -53,13 +53,13 @@ export async function updateApplication(
 
 export async function advanceApplication(
   id: string,
-  payload: { toStatus: string; sendEmail?: boolean }
+  payload: { toStatus: string; sendEmail?: boolean; notes?: string | null }
 ) {
   const { data } = await apiClient.patch<ApiResponse>(
     `/applications/${id}/advance`,
     payload
   );
-  return data.application!;
+  return { application: data.application!, emailWarning: data.emailWarning || null };
 }
 
 export async function scheduleInterview(id: string, payload: InterviewPayload) {
@@ -67,7 +67,7 @@ export async function scheduleInterview(id: string, payload: InterviewPayload) {
     `/applications/${id}/interview`,
     payload
   );
-  return data.application!;
+  return { application: data.application!, emailWarning: data.emailWarning || null };
 }
 
 export async function sendOffer(id: string, payload: OfferPayload) {
@@ -75,7 +75,7 @@ export async function sendOffer(id: string, payload: OfferPayload) {
     `/applications/${id}/offer`,
     payload
   );
-  return data.application!;
+  return { application: data.application!, emailWarning: data.emailWarning || null };
 }
 
 export async function markHired(id: string, payload: HirePayload = {}) {
@@ -83,7 +83,7 @@ export async function markHired(id: string, payload: HirePayload = {}) {
     `/applications/${id}/hire`,
     payload
   );
-  return data.application!;
+  return { application: data.application!, emailWarning: data.emailWarning || null };
 }
 
 export async function completeInternship(id: string, payload: CompletePayload = {}) {
@@ -91,7 +91,7 @@ export async function completeInternship(id: string, payload: CompletePayload = 
     `/applications/${id}/complete`,
     payload
   );
-  return data.application!;
+  return { application: data.application!, emailWarning: data.emailWarning || null };
 }
 
 export async function rejectApplication(id: string, payload: RejectPayload = {}) {

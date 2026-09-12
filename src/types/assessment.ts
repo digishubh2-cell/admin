@@ -78,6 +78,8 @@ export interface AssessmentPdf {
   fileId?: string | null;
   name?: string | null;
   size?: number | null;
+  mimeType?: string | null;
+  originalName?: string | null;
 }
 
 export interface AssessmentAttempt {

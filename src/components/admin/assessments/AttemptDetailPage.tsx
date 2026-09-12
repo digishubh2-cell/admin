@@ -122,7 +122,7 @@ export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
             <div>
               <p className="text-xs text-admin-text-muted">Template</p>
               <p className="mt-0.5 text-sm font-medium">
-                {isPdf ? "PDF document" : "Online test"}
+                {isPdf ? "Document file" : "Online test"}
                 {attempt.templateName ? ` · ${attempt.templateName}` : ""}
                 {!isPdf && attempt.durationMinutes
                   ? ` (${attempt.durationMinutes}m)`
@@ -155,7 +155,7 @@ export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
                   rel="noopener noreferrer"
                   className="text-xs text-primary underline"
                 >
-                  Open PDF
+                  Open document
                 </a>
               ) : null}
             </div>
@@ -174,7 +174,7 @@ export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
           <CardContent className="flex flex-col items-center gap-3 p-5">
             <p className="text-xs text-admin-text-muted">Identity selfie</p>
             {isPdf ? (
-              <p className="text-xs text-admin-text-muted">No selfie for PDF assessments</p>
+              <p className="text-xs text-admin-text-muted">No selfie for document assessments</p>
             ) : attempt.selfie?.url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -275,8 +275,8 @@ export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
 
       {isPdf ? (
         <div className="rounded-2xl border border-admin-border bg-admin-surface p-5 text-sm text-admin-text-muted">
-          This was a PDF document assessment. There are no scored answers —
-          open the PDF above and decide pass, fail, or retake.
+          This was a document assessment. There are no scored answers —
+          open the file above and decide pass, fail, or retake.
         </div>
       ) : (
       <div className="space-y-3">

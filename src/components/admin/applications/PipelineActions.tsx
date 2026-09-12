@@ -46,7 +46,11 @@ interface PipelineActionsProps {
   application: Application;
   attempt?: AssessmentAttempt | null;
   busy?: boolean;
-  onAdvance: (toStatus: ApplicationStatus, sendEmail?: boolean) => void;
+  onAdvance: (
+    toStatus: ApplicationStatus,
+    sendEmail?: boolean,
+    notes?: string | null
+  ) => void;
   onInterview: (payload: InterviewPayload) => void;
   onOffer: (payload: OfferPayload) => void;
   onHire: (payload: HirePayload) => void;
@@ -80,6 +84,9 @@ export function PipelineActions({
       "new",
       "under_review",
       "shortlisted",
+      "assessment_invited",
+      "assessment_in_progress",
+      "assessment_submitted",
       "qualified",
       "interview",
       "rejected",
@@ -88,7 +95,13 @@ export function PipelineActions({
   const assessment = application.pipeline?.assessment;
   const hasActiveAttempt = Boolean(assessment?.attemptId);
   const canInviteToAssessment =
-    !offerLocked && ["new", "under_review", "shortlisted"].includes(status);
+    !offerLocked &&
+    ![
+      "offered",
+      "hired",
+      "completed",
+      "archived",
+    ].includes(status);
   const isAwaitingCandidate = [
     "assessment_invited",
     "assessment_in_progress",
@@ -101,6 +114,8 @@ export function PipelineActions({
     "assessment_in_progress",
     "assessment_submitted",
   ].includes(status);
+  const canMarkQualified =
+    preOffer && !["qualified", "interview"].includes(status);
 
   const { data: templates } = useTemplates();
   const { invite, resend, retake } = useAssessmentMutations();
@@ -123,7 +138,11 @@ export function PipelineActions({
   async function handleInvite() {
     if (assessmentKind === "pdf") {
       if (!pdfFile) {
-        toast.error("Choose a PDF to send");
+        toast.error("Choose a document to send");
+        return;
+      }
+      if (pdfFile.size > 15 * 1024 * 1024) {
+        toast.error("Document must be 15MB or smaller");
         return;
       }
     } else if (!templateId) {
@@ -175,7 +194,14 @@ export function PipelineActions({
   }
 
   const [panel, setPanel] = useState<
-    null | "interview" | "offer" | "hire" | "complete" | "reject" | "assessment"
+    | null
+    | "interview"
+    | "offer"
+    | "hire"
+    | "complete"
+    | "reject"
+    | "assessment"
+    | "qualify"
   >(null);
 
   const [interview, setInterview] = useState({
@@ -215,6 +241,13 @@ export function PipelineActions({
 
   const [rejectReason, setRejectReason] = useState("");
   const [notifyReject, setNotifyReject] = useState(true);
+  const [notifyAdvance, setNotifyAdvance] = useState(true);
+  const [notifyInterview, setNotifyInterview] = useState(true);
+  const [notifyOffer, setNotifyOffer] = useState(true);
+  const [notifyHire, setNotifyHire] = useState(true);
+  const [notifyComplete, setNotifyComplete] = useState(true);
+  const [qualifyNote, setQualifyNote] = useState("");
+  const [notifyQualify, setNotifyQualify] = useState(true);
 
   if (status === "archived" || status === "completed") {
     return (
@@ -240,6 +273,8 @@ export function PipelineActions({
     primary?.advanceTo !== "shortlisted";
   const showInvite =
     canInviteToAssessment && primary?.panel !== "assessment";
+  const showQualify =
+    canMarkQualified && primary?.panel !== "qualify";
   const attemptExpired = attempt?.status === "expired";
   const canRetake =
     Boolean(attempt) &&
@@ -257,7 +292,8 @@ export function PipelineActions({
     ) &&
     !primary?.resendInvite;
   const showViewAttemptSecondary = hasActiveAttempt && !assessmentGate;
-  const showInterviewSecondary = preOffer && primary?.panel !== "interview";
+  const showInterviewSecondary =
+    preOffer && status !== "interview" && primary?.panel !== "interview";
   const showOfferSecondary = preOffer && primary?.panel !== "offer";
   const showHireSecondary = status === "offered" && primary?.panel !== "hire";
   const showCompleteSecondary =
@@ -267,6 +303,7 @@ export function PipelineActions({
   const hasSecondaryActions =
     showMarkReview ||
     showShortlist ||
+    showQualify ||
     showInvite ||
     showResendSecondary ||
     showRetakeSecondary ||
@@ -296,7 +333,7 @@ export function PipelineActions({
       return;
     }
     if (primary.advanceTo) {
-      onAdvance(primary.advanceTo, primary.advanceSendEmail);
+      onAdvance(primary.advanceTo, notifyAdvance);
       return;
     }
     if (primary.resendInvite) {
@@ -390,6 +427,16 @@ export function PipelineActions({
               </Button>
             ) : null}
           </div>
+          {primary.advanceTo ? (
+            <label className="mt-3 flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={notifyAdvance}
+                onChange={(e) => setNotifyAdvance(e.target.checked)}
+              />
+              Email candidate
+            </label>
+          ) : null}
         </div>
       ) : null}
 
@@ -414,7 +461,7 @@ export function PipelineActions({
               size="sm"
               variant="outline"
               disabled={busy}
-              onClick={() => onAdvance("under_review", false)}
+              onClick={() => onAdvance("under_review", notifyAdvance)}
             >
               Mark under review
             </Button>
@@ -424,9 +471,19 @@ export function PipelineActions({
               size="sm"
               variant="outline"
               disabled={busy}
-              onClick={() => onAdvance("shortlisted", true)}
+              onClick={() => onAdvance("shortlisted", notifyAdvance)}
             >
-              Shortlist &amp; email
+              Shortlist
+            </Button>
+          ) : null}
+          {showQualify ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => setPanel("qualify")}
+            >
+              Mark qualified
             </Button>
           ) : null}
           {showInvite ? (
@@ -511,6 +568,22 @@ export function PipelineActions({
             </Button>
           ) : null}
         </div>
+        {showMarkReview || showShortlist ? (
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={notifyAdvance}
+              onChange={(e) => setNotifyAdvance(e.target.checked)}
+            />
+            Email candidate on advance
+          </label>
+        ) : null}
+        {canMarkQualified || showInvite ? (
+          <p className="mt-1 text-xs text-admin-text-muted">
+            Platform assessment is optional. If they already completed a test on
+            WhatsApp or offline, mark them qualified directly.
+          </p>
+        ) : null}
       </div>
       ) : assessmentGate && stage?.blurb ? (
         <p className="text-xs text-admin-text-muted">{stage.blurb}</p>
@@ -528,7 +601,7 @@ export function PipelineActions({
               }
             >
               <option value="interactive">Online test (tech / aptitude)</option>
-              <option value="pdf">PDF document (non-tech)</option>
+              <option value="pdf">Document file (PDF, Word, …)</option>
             </Select>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -549,10 +622,10 @@ export function PipelineActions({
               </div>
             ) : (
               <div>
-                <Label>PDF file</Label>
+                <Label>Document (PDF, Word, …)</Label>
                 <Input
                   type="file"
-                  accept="application/pdf"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.rtf,.odt,.ods,.odp,.jpg,.jpeg,.png,.webp,.gif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv,image/jpeg,image/png,image/webp,image/gif"
                   onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
                 />
                 {pdfFile ? (
@@ -586,7 +659,7 @@ export function PipelineActions({
           </div>
           <p className="text-xs text-admin-text-muted">
             {assessmentKind === "pdf"
-              ? "The candidate receives an email with a secure link to open this PDF and mark it complete. Same pipeline statuses as an online test."
+              ? "The candidate receives an email with a secure link to open or download this file and mark it complete. PDFs preview in the browser; Word and similar files are download-only. Max 15MB. Export Google Docs as PDF or Word first."
               : "The candidate receives an email with a secure link. They'll capture a selfie before the timed test starts. No score is shown to them — you decide pass/fail once they submit."}
           </p>
           <div className="flex gap-2">
@@ -600,6 +673,53 @@ export function PipelineActions({
               onClick={handleInvite}
             >
               Send invite &amp; email
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setPanel(null)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {panel === "qualify" ? (
+        <div className="space-y-3 rounded-xl border border-admin-border bg-admin-muted/30 p-4">
+          <p className="text-sm font-medium">Mark qualified</p>
+          <p className="text-xs text-admin-text-muted">
+            Use this when the candidate already passed an offline or WhatsApp
+            assessment. No platform invite is created.
+          </p>
+          <div>
+            <Label>Internal note (optional)</Label>
+            <Textarea
+              rows={2}
+              value={qualifyNote}
+              onChange={(e) => setQualifyNote(e.target.value)}
+              placeholder="Assessed offline / WhatsApp"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={notifyQualify}
+              onChange={(e) => setNotifyQualify(e.target.checked)}
+            />
+            Email candidate
+          </label>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              disabled={busy}
+              onClick={() => {
+                onAdvance(
+                  "qualified",
+                  notifyQualify,
+                  qualifyNote.trim() || null
+                );
+                setPanel(null);
+                setQualifyNote("");
+              }}
+            >
+              Mark qualified
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setPanel(null)}>
               Cancel
@@ -663,6 +783,14 @@ export function PipelineActions({
               />
             </div>
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={notifyInterview}
+              onChange={(e) => setNotifyInterview(e.target.checked)}
+            />
+            Email candidate
+          </label>
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -673,11 +801,11 @@ export function PipelineActions({
                   interviewMode: interview.interviewMode,
                   interviewLink: interview.interviewLink || null,
                   interviewNotes: interview.interviewNotes || null,
-                  sendEmail: true,
+                  sendEmail: notifyInterview,
                 })
               }
             >
-              Send invite
+              {notifyInterview ? "Send invite" : "Schedule interview"}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setPanel(null)}>
               Cancel
@@ -814,6 +942,14 @@ export function PipelineActions({
               />
             </div>
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={notifyOffer}
+              onChange={(e) => setNotifyOffer(e.target.checked)}
+            />
+            Email candidate
+          </label>
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -833,11 +969,11 @@ export function PipelineActions({
                   location: offer.location || null,
                   mentorName: offer.mentorName || null,
                   offerValidUntil: offer.offerValidUntil || null,
-                  sendEmail: true,
+                  sendEmail: notifyOffer,
                 })
               }
             >
-              Generate PDF &amp; email
+              {notifyOffer ? "Generate PDF & email" : "Generate PDF"}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setPanel(null)}>
               Cancel
@@ -880,6 +1016,14 @@ export function PipelineActions({
               />
             </div>
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={notifyHire}
+              onChange={(e) => setNotifyHire(e.target.checked)}
+            />
+            Email candidate
+          </label>
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -889,11 +1033,11 @@ export function PipelineActions({
                   joinedAt: hire.joinedAt || null,
                   mentorName: hire.mentorName || null,
                   notes: hire.notes || null,
-                  sendEmail: true,
+                  sendEmail: notifyHire,
                 })
               }
             >
-              Mark hired &amp; welcome email
+              {notifyHire ? "Mark hired & welcome email" : "Mark hired"}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setPanel(null)}>
               Cancel
@@ -939,6 +1083,14 @@ export function PipelineActions({
               />
             </div>
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={notifyComplete}
+              onChange={(e) => setNotifyComplete(e.target.checked)}
+            />
+            Email candidate
+          </label>
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -948,11 +1100,13 @@ export function PipelineActions({
                   completedAt: complete.completedAt || null,
                   rating: complete.rating ? Number(complete.rating) : null,
                   feedback: complete.feedback || null,
-                  sendEmail: true,
+                  sendEmail: notifyComplete,
                 })
               }
             >
-              Generate certificate &amp; email
+              {notifyComplete
+                ? "Generate certificate & email"
+                : "Generate certificate"}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setPanel(null)}>
               Cancel

@@ -11,33 +11,33 @@ export const STAGE_COPY: Record<
 > = {
   new: {
     title: "New application",
-    blurb: "Start by reviewing the profile, then shortlist or send an assessment.",
+    blurb: "Start by reviewing the profile, then shortlist, send an assessment, or mark qualified if they already completed one offline.",
   },
   under_review: {
     title: "Under review",
-    blurb: "Decide whether to shortlist, invite to assessment, or reject.",
+    blurb: "Shortlist, send an assessment, mark qualified (offline / WhatsApp), or reject.",
   },
   shortlisted: {
     title: "Shortlisted",
-    blurb: "Next: send an online assessment, or schedule an interview / generate an offer.",
+    blurb: "Send a platform assessment, or mark qualified if they already completed one on WhatsApp / offline. Interview and offer stay available.",
   },
   assessment_invited: {
     title: "Waiting on assessment",
-    blurb: "Invite sent — waiting for the candidate to open the link (online test or PDF).",
+    blurb: "Invite sent — waiting for the candidate to open the link (online test or document). You can still mark qualified if they completed it offline.",
   },
   assessment_in_progress: {
     title: "Assessment in progress",
-    blurb: "Candidate has started the test. Wait for submission before deciding.",
+    blurb: "Candidate has started the test. Wait for submission, or mark qualified if you assessed them offline.",
   },
   assessment_submitted: {
     title: "Assessment submitted — decision needed",
     blurb:
-      "Review the score and answers, then mark pass (qualified) or fail. You cannot advance the hiring pipeline until you decide.",
+      "Review the score and answers, then mark pass (qualified) or fail. You can also advance the pipeline if you assessed them offline.",
   },
   qualified: {
     title: "Qualified",
     blurb:
-      "Assessment passed. Continue with interview (if path is test + interview) or generate an offer.",
+      "Candidate is qualified. Continue with interview (if needed) or generate an offer.",
   },
   interview: {
     title: "Interview stage",
@@ -70,7 +70,7 @@ export type PipelinePrimaryAction = {
   label: string;
   description: string;
   href?: string;
-  panel?: "interview" | "offer" | "hire" | "complete" | "reject" | "assessment";
+  panel?: "interview" | "offer" | "hire" | "complete" | "reject" | "assessment" | "qualify";
   advanceTo?: ApplicationStatus;
   advanceSendEmail?: boolean;
   resendInvite?: boolean;
@@ -149,16 +149,16 @@ export function getPipelinePrimaryAction(
   if (status === "new") {
     return {
       label: "Mark under review",
-      description: "Acknowledge this application and begin screening.",
+      description: "Acknowledge this application, email the candidate, and begin screening.",
       advanceTo: "under_review",
-      advanceSendEmail: false,
+      advanceSendEmail: true,
     };
   }
 
   if (status === "under_review") {
     return {
       label: "Shortlist & email",
-      description: "Move forward and notify the candidate, or send an assessment from secondary actions.",
+      description: "Move forward and notify the candidate. Sending a platform assessment is optional.",
       advanceTo: "shortlisted",
       advanceSendEmail: true,
     };
@@ -166,9 +166,10 @@ export function getPipelinePrimaryAction(
 
   if (status === "shortlisted") {
     return {
-      label: "Send assessment",
-      description: "Invite the candidate to an online test (recommended before interview/offer).",
-      panel: "assessment",
+      label: "Mark qualified",
+      description:
+        "If they already completed an assessment on WhatsApp or offline, mark qualified now. Sending a platform test or document is optional.",
+      panel: "qualify",
     };
   }
 
@@ -232,7 +233,7 @@ export function buildPipelineFacts(
   if (pathLabel) facts.push({ label: "Hiring path", value: pathLabel });
 
   if (attempt?.kind === "pdf" || assessment?.kind === "pdf") {
-    facts.push({ label: "Assessment type", value: "PDF document" });
+    facts.push({ label: "Assessment type", value: "Document file" });
   } else if (attempt || assessment?.attemptId) {
     facts.push({ label: "Assessment type", value: "Online test" });
   }

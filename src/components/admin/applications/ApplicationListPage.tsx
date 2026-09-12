@@ -93,12 +93,18 @@ export function ApplicationListPage() {
       }
 
       if (["new", "under_review", "shortlisted"].includes(status)) {
-        await mutations.advance.mutateAsync({
+        const result = await mutations.advance.mutateAsync({
           id,
           toStatus: status,
-          sendEmail: status === "shortlisted",
+          sendEmail: true,
         });
-        toast.success(`Marked as ${status.replace(/_/g, " ")}`);
+        if (result.emailWarning) {
+          toast.warning(
+            `Marked as ${status.replace(/_/g, " ")}, but the email failed: ${result.emailWarning}`
+          );
+        } else {
+          toast.success(`Marked as ${status.replace(/_/g, " ")}`);
+        }
         return;
       }
 

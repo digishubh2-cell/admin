@@ -81,7 +81,8 @@ export function useApplicationMutations() {
         id: string;
         toStatus: string;
         sendEmail?: boolean;
-      }) => advanceApplication(id, { toStatus, sendEmail }),
+        notes?: string | null;
+      }) => advanceApplication(id, { toStatus, sendEmail, notes }),
       onSuccess: invalidate,
     }),
     interview: useMutation({
