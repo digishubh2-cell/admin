@@ -77,6 +77,7 @@ export function useApplicationMutations() {
         id,
         toStatus,
         sendEmail,
+        notes,
       }: {
         id: string;
         toStatus: string;
