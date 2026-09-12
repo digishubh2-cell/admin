@@ -23,7 +23,7 @@ export const STAGE_COPY: Record<
   },
   assessment_invited: {
     title: "Waiting on assessment",
-    blurb: "Invite sent — waiting for the candidate to open the link and start the test.",
+    blurb: "Invite sent — waiting for the candidate to open the link (online test or PDF).",
   },
   assessment_in_progress: {
     title: "Assessment in progress",
@@ -92,6 +92,15 @@ export function getPipelinePrimaryAction(
   const path = attempt?.path || assessment?.path;
 
   if (status === "archived" || status === "completed") return null;
+
+  if (attempt?.status === "expired") {
+    return {
+      label: "Resend assessment",
+      description:
+        "The previous assessment link expired. Send a new tokenized link — the old link will no longer work.",
+      resendInvite: true,
+    };
+  }
 
   if (status === "assessment_submitted" && attemptId) {
     return {
@@ -222,8 +231,17 @@ export function buildPipelineFacts(
   const pathLabel = getPathLabel(path);
   if (pathLabel) facts.push({ label: "Hiring path", value: pathLabel });
 
+  if (attempt?.kind === "pdf" || assessment?.kind === "pdf") {
+    facts.push({ label: "Assessment type", value: "PDF document" });
+  } else if (attempt || assessment?.attemptId) {
+    facts.push({ label: "Assessment type", value: "Online test" });
+  }
+
   if (attempt?.templateName) {
-    facts.push({ label: "Assessment template", value: attempt.templateName });
+    facts.push({
+      label: attempt.kind === "pdf" ? "Document" : "Assessment template",
+      value: attempt.templateName,
+    });
   }
 
   if (attempt) {

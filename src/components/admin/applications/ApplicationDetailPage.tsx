@@ -311,10 +311,12 @@ export function ApplicationDetailPage({
   const { data: application, isLoading, isError, error, refetch } =
     useApplication(applicationId);
   const mutations = useApplicationMutations();
-  const { resend } = useAssessmentMutations();
+  const { resend, retake } = useAssessmentMutations();
   const [tab, setTab] = useState<DetailTab>("overview");
   const [tabSeeded, setTabSeeded] = useState(false);
   const [notes, setNotes] = useState("");
+  const [candidateMessage, setCandidateMessage] = useState("");
+  const [sendMessageEmail, setSendMessageEmail] = useState(true);
 
   const attemptId = application?.pipeline?.assessment?.attemptId || null;
   const { data: attempt, isLoading: attemptLoading } = useAttempt(attemptId);
@@ -387,7 +389,36 @@ export function ApplicationDetailPage({
         id: application.id,
         payload: { notes },
       });
-      toast.success("Notes saved");
+      toast.success("Internal notes saved — not emailed");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  }
+
+  async function handleSendCandidateMessage() {
+    if (!application) return;
+    const message = candidateMessage.trim();
+    if (!message) {
+      toast.error("Write a message first");
+      return;
+    }
+    if (!sendMessageEmail) {
+      toast.error("Turn on “Send to candidate” to email this message");
+      return;
+    }
+    try {
+      const result = await mutations.sendMessage.mutateAsync({
+        id: application.id,
+        payload: { message, sendEmail: true },
+      });
+      if (result.emailWarning) {
+        toast.warning(
+          `Message recorded, but the email failed: ${result.emailWarning}`
+        );
+      } else {
+        toast.success("Message emailed to the candidate");
+        setCandidateMessage("");
+      }
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -464,11 +495,21 @@ export function ApplicationDetailPage({
   async function handleReject(payload: RejectPayload) {
     if (!application) return;
     try {
-      await mutations.reject.mutateAsync({
+      const result = await mutations.reject.mutateAsync({
         id: application.id,
         payload,
       });
-      toast.success("Candidate rejected");
+      if (result.emailWarning) {
+        toast.warning(
+          `Candidate rejected, but the email failed: ${result.emailWarning}`
+        );
+      } else {
+        toast.success(
+          payload.sendEmail === false
+            ? "Candidate rejected"
+            : "Candidate rejected — email sent"
+        );
+      }
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -489,8 +530,30 @@ export function ApplicationDetailPage({
   async function handleResendInvite() {
     if (!application) return;
     try {
-      await resend.mutateAsync(application.id);
-      toast.success("Assessment invite resent");
+      const result = await resend.mutateAsync(application.id);
+      if (result.emailWarning) {
+        toast.warning(
+          `New link created, but the email failed: ${result.emailWarning}`
+        );
+      } else {
+        toast.success("New assessment link sent");
+      }
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  }
+
+  async function handleRetake() {
+    if (!application) return;
+    try {
+      const result = await retake.mutateAsync(application.id);
+      if (result.emailWarning) {
+        toast.warning(
+          `Retake created, but the email failed: ${result.emailWarning}`
+        );
+      } else {
+        toast.success("Retake invite sent with a new link");
+      }
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -944,14 +1007,33 @@ export function ApplicationDetailPage({
                     </Link>
                   </Button>
                 ) : null}
-                {application.status === "assessment_invited" ? (
+                {application.status === "assessment_invited" ||
+                attempt?.status === "expired" ? (
                   <Button
                     variant="outline"
                     size="sm"
                     disabled={resend.isPending}
                     onClick={handleResendInvite}
                   >
-                    Resend invite
+                    {attempt?.status === "expired"
+                      ? "Resend assessment"
+                      : "Resend invite"}
+                  </Button>
+                ) : null}
+                {attempt &&
+                ["submitted", "expired", "in_progress", "void"].includes(
+                  attempt.status
+                ) &&
+                !["offered", "hired", "completed", "archived"].includes(
+                  application.status
+                ) ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={retake.isPending}
+                    onClick={handleRetake}
+                  >
+                    Retake
                   </Button>
                 ) : null}
               </div>
@@ -971,7 +1053,38 @@ export function ApplicationDetailPage({
               <div className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)]">
                 <div className="space-y-5">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Row label="Template" value={attempt.templateName} />
+                    <Row
+                      label="Type"
+                      value={
+                        attempt.kind === "pdf"
+                          ? "PDF document"
+                          : "Online test"
+                      }
+                    />
+                    <Row
+                      label={attempt.kind === "pdf" ? "Document" : "Template"}
+                      value={attempt.templateName}
+                    />
+                    {attempt.kind === "pdf" && attempt.pdf?.url ? (
+                      <div>
+                        <p className="text-xs text-admin-text-muted">PDF</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-1"
+                          asChild
+                        >
+                          <a
+                            href={attempt.pdf.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Download className="h-4 w-4" />
+                            {attempt.pdf.name || "Open PDF"}
+                          </a>
+                        </Button>
+                      </div>
+                    ) : null}
                     <Row
                       label="Path"
                       value={
@@ -980,7 +1093,9 @@ export function ApplicationDetailPage({
                           : "Test only"
                       }
                     />
-                    <Row label="Duration" value={`${attempt.durationMinutes} min`} />
+                    {attempt.kind === "pdf" ? null : (
+                      <Row label="Duration" value={`${attempt.durationMinutes} min`} />
+                    )}
                     <div>
                       <p className="text-xs text-admin-text-muted">Status</p>
                       <div className="mt-1 flex flex-wrap gap-2">
@@ -992,6 +1107,13 @@ export function ApplicationDetailPage({
                     <Row label="Submitted" value={formatDate(attempt.submittedAt)} />
                   </div>
 
+                  {attempt.kind === "pdf" ? (
+                    <div className="rounded-xl border border-admin-border p-4 text-sm text-admin-text-muted">
+                      PDF assessments have no auto score. Review the document
+                      the candidate received, then mark pass or fail from the
+                      attempt page.
+                    </div>
+                  ) : (
                   <div className="space-y-3 rounded-xl border border-admin-border p-4">
                     <div className="flex items-end justify-between gap-3">
                       <div>
@@ -1021,8 +1143,10 @@ export function ApplicationDetailPage({
                       total={attempt.autoScore.breakdown.aptitude.total}
                     />
                   </div>
+                  )}
                 </div>
 
+                {attempt.kind === "pdf" ? null : (
                 <div className="flex flex-col items-center gap-3 rounded-xl border border-admin-border p-4">
                   <p className="text-xs text-admin-text-muted">Identity selfie</p>
                   {attempt.selfie?.url ? (
@@ -1043,6 +1167,7 @@ export function ApplicationDetailPage({
                     </p>
                   ) : null}
                 </div>
+                )}
               </div>
             ) : (
               <div className="space-y-2 text-sm">
@@ -1383,28 +1508,66 @@ export function ApplicationDetailPage({
         </TabsContent>
 
         <TabsContent value="notes">
-          <div className="max-w-2xl space-y-3 rounded-2xl border border-admin-border bg-admin-surface p-5">
-            <div>
-              <h2 className="text-base font-semibold">Internal notes</h2>
-              <p className="mt-1 text-sm text-admin-text-muted">
-                Visible only to the hiring team.
-              </p>
+          <div className="grid max-w-4xl gap-5 lg:grid-cols-2">
+            <div className="space-y-3 rounded-2xl border border-admin-border bg-admin-surface p-5">
+              <div>
+                <h2 className="text-base font-semibold">Internal notes</h2>
+                <p className="mt-1 text-sm text-admin-text-muted">
+                  Visible only to the hiring team. Saving here does not email
+                  the candidate.
+                </p>
+              </div>
+              <Label htmlFor="application-notes">Notes</Label>
+              <Textarea
+                id="application-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={8}
+                placeholder="Add hiring notes..."
+              />
+              <Button
+                type="button"
+                onClick={handleSaveNotes}
+                disabled={mutations.update.isPending}
+              >
+                Save notes
+              </Button>
             </div>
-            <Label htmlFor="application-notes">Notes</Label>
-            <Textarea
-              id="application-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={8}
-              placeholder="Add hiring notes..."
-            />
-            <Button
-              type="button"
-              onClick={handleSaveNotes}
-              disabled={mutations.update.isPending}
-            >
-              Save notes
-            </Button>
+
+            <div className="space-y-3 rounded-2xl border border-primary/20 bg-primary/5 p-5">
+              <div>
+                <h2 className="text-base font-semibold">Message to candidate</h2>
+                <p className="mt-1 text-sm text-admin-text-muted">
+                  This text is emailed to the candidate. Empty messages are not
+                  sent.
+                </p>
+              </div>
+              <Label htmlFor="candidate-message">Email message</Label>
+              <Textarea
+                id="candidate-message"
+                value={candidateMessage}
+                onChange={(e) => setCandidateMessage(e.target.value)}
+                rows={8}
+                placeholder="Write the note the candidate should receive..."
+              />
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={sendMessageEmail}
+                  onChange={(e) => setSendMessageEmail(e.target.checked)}
+                />
+                Send to candidate by email
+              </label>
+              <Button
+                type="button"
+                onClick={handleSendCandidateMessage}
+                disabled={
+                  mutations.sendMessage.isPending || !candidateMessage.trim()
+                }
+              >
+                Email message
+              </Button>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

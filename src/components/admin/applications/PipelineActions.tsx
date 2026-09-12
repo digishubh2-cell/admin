@@ -103,22 +103,54 @@ export function PipelineActions({
   ].includes(status);
 
   const { data: templates } = useTemplates();
-  const { invite, resend } = useAssessmentMutations();
+  const { invite, resend, retake } = useAssessmentMutations();
   const [templateId, setTemplateId] = useState("");
   const [path, setPath] = useState<"test" | "both">("test");
+  const [assessmentKind, setAssessmentKind] = useState<"interactive" | "pdf">(
+    "interactive"
+  );
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [expiresInHours, setExpiresInHours] = useState("72");
+
+  function toastEmailResult(successMessage: string, emailWarning?: string | null) {
+    if (emailWarning) {
+      toast.warning(`${successMessage}, but the email failed: ${emailWarning}`);
+      return;
+    }
+    toast.success(successMessage);
+  }
 
   async function handleInvite() {
-    if (!templateId) {
+    if (assessmentKind === "pdf") {
+      if (!pdfFile) {
+        toast.error("Choose a PDF to send");
+        return;
+      }
+    } else if (!templateId) {
       toast.error("Select a template first");
       return;
     }
     try {
-      await invite.mutateAsync({
+      const result = await invite.mutateAsync({
         applicationId: application.id,
-        payload: { templateId, path },
+        payload:
+          assessmentKind === "pdf"
+            ? {
+                kind: "pdf",
+                file: pdfFile!,
+                path,
+                expiresInHours: Number(expiresInHours) || 72,
+              }
+            : {
+                kind: "interactive",
+                templateId,
+                path,
+                expiresInHours: Number(expiresInHours) || 72,
+              },
       });
-      toast.success("Assessment invite sent");
+      toastEmailResult("Assessment invite sent", result.emailWarning);
       setPanel(null);
+      setPdfFile(null);
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -126,8 +158,17 @@ export function PipelineActions({
 
   async function handleResendInvite() {
     try {
-      await resend.mutateAsync(application.id);
-      toast.success("Assessment invite resent");
+      const result = await resend.mutateAsync(application.id);
+      toastEmailResult("New assessment link sent", result.emailWarning);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  }
+
+  async function handleRetake() {
+    try {
+      const result = await retake.mutateAsync(application.id);
+      toastEmailResult("Retake invite sent with a new link", result.emailWarning);
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -199,9 +240,21 @@ export function PipelineActions({
     primary?.advanceTo !== "shortlisted";
   const showInvite =
     canInviteToAssessment && primary?.panel !== "assessment";
+  const attemptExpired = attempt?.status === "expired";
+  const canRetake =
+    Boolean(attempt) &&
+    !offerLocked &&
+    ["submitted", "expired", "void", "in_progress", "invited"].includes(
+      attempt?.status || ""
+    );
   const showResendSecondary =
-    isAwaitingCandidate &&
-    status === "assessment_invited" &&
+    (isAwaitingCandidate || attemptExpired) &&
+    !primary?.resendInvite;
+  const showRetakeSecondary =
+    canRetake &&
+    ["assessment_submitted", "assessment_in_progress", "qualified", "rejected"].includes(
+      status
+    ) &&
     !primary?.resendInvite;
   const showViewAttemptSecondary = hasActiveAttempt && !assessmentGate;
   const showInterviewSecondary = preOffer && primary?.panel !== "interview";
@@ -216,6 +269,7 @@ export function PipelineActions({
     showShortlist ||
     showInvite ||
     showResendSecondary ||
+    showRetakeSecondary ||
     showViewAttemptSecondary ||
     showInterviewSecondary ||
     showOfferSecondary ||
@@ -308,7 +362,11 @@ export function PipelineActions({
               </Button>
             ) : (
               <Button
-                disabled={busy || (primary.resendInvite && resend.isPending)}
+                disabled={
+                  busy ||
+                  (primary.resendInvite &&
+                    (resend.isPending || retake.isPending))
+                }
                 onClick={runPrimaryAction}
               >
                 {primary.label}
@@ -388,7 +446,17 @@ export function PipelineActions({
               disabled={busy || resend.isPending}
               onClick={handleResendInvite}
             >
-              Resend invite
+              {attemptExpired ? "Resend assessment" : "Resend invite"}
+            </Button>
+          ) : null}
+          {showRetakeSecondary ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy || retake.isPending}
+              onClick={handleRetake}
+            >
+              Retake
             </Button>
           ) : null}
           {showViewAttemptSecondary ? (
@@ -450,22 +518,50 @@ export function PipelineActions({
 
       {panel === "assessment" ? (
         <div className="space-y-3 rounded-xl border border-admin-border bg-admin-muted/30 p-4">
-          <p className="text-sm font-medium">Send online assessment</p>
+          <p className="text-sm font-medium">Send assessment</p>
+          <div>
+            <Label>Assessment type</Label>
+            <Select
+              value={assessmentKind}
+              onChange={(e) =>
+                setAssessmentKind(e.target.value as "interactive" | "pdf")
+              }
+            >
+              <option value="interactive">Online test (tech / aptitude)</option>
+              <option value="pdf">PDF document (non-tech)</option>
+            </Select>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label>Template</Label>
-              <Select
-                value={templateId}
-                onChange={(e) => setTemplateId(e.target.value)}
-              >
-                <option value="">Select a template…</option>
-                {(templates || []).map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} ({t.durationMinutes}m, {t.questionIds.length}q)
-                  </option>
-                ))}
-              </Select>
-            </div>
+            {assessmentKind === "interactive" ? (
+              <div>
+                <Label>Template</Label>
+                <Select
+                  value={templateId}
+                  onChange={(e) => setTemplateId(e.target.value)}
+                >
+                  <option value="">Select a template…</option>
+                  {(templates || []).map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.durationMinutes}m, {t.questionIds.length}q)
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <Label>PDF file</Label>
+                <Input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                />
+                {pdfFile ? (
+                  <p className="mt-1 text-xs text-admin-text-muted">
+                    {pdfFile.name}
+                  </p>
+                ) : null}
+              </div>
+            )}
             <div>
               <Label>Path</Label>
               <Select
@@ -476,16 +572,31 @@ export function PipelineActions({
                 <option value="both">Both — test then interview</option>
               </Select>
             </div>
+            <div>
+              <Label>Link valid for</Label>
+              <Select
+                value={expiresInHours}
+                onChange={(e) => setExpiresInHours(e.target.value)}
+              >
+                <option value="72">72 hours</option>
+                <option value="168">7 days</option>
+                <option value="336">14 days</option>
+              </Select>
+            </div>
           </div>
           <p className="text-xs text-admin-text-muted">
-            The candidate receives an email with a secure link. They&apos;ll
-            capture a selfie before the timed test starts. No score is shown to
-            them — you decide pass/fail once they submit.
+            {assessmentKind === "pdf"
+              ? "The candidate receives an email with a secure link to open this PDF and mark it complete. Same pipeline statuses as an online test."
+              : "The candidate receives an email with a secure link. They'll capture a selfie before the timed test starts. No score is shown to them — you decide pass/fail once they submit."}
           </p>
           <div className="flex gap-2">
             <Button
               size="sm"
-              disabled={busy || invite.isPending || !templateId}
+              disabled={
+                busy ||
+                invite.isPending ||
+                (assessmentKind === "interactive" ? !templateId : !pdfFile)
+              }
               onClick={handleInvite}
             >
               Send invite &amp; email

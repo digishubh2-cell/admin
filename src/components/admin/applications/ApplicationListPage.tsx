@@ -71,11 +71,24 @@ export function ApplicationListPage() {
       }
 
       if (status === "rejected") {
-        await mutations.reject.mutateAsync({
+        if (
+          !confirm(
+            "Reject this candidate and email them a rejection notice?"
+          )
+        ) {
+          return;
+        }
+        const result = await mutations.reject.mutateAsync({
           id,
-          payload: { sendEmail: false },
+          payload: { sendEmail: true },
         });
-        toast.success("Marked as rejected");
+        if (result.emailWarning) {
+          toast.warning(
+            `Rejected, but the email failed: ${result.emailWarning}`
+          );
+        } else {
+          toast.success("Rejected — email sent");
+        }
         return;
       }
 

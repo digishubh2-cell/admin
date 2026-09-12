@@ -32,6 +32,8 @@ export interface AssessmentTemplate {
   updatedAt: string;
 }
 
+export type AssessmentKind = "interactive" | "pdf";
+
 export type AttemptStatus =
   | "invited"
   | "identity_pending"
@@ -71,6 +73,13 @@ export interface AttemptAutoScore {
   };
 }
 
+export interface AssessmentPdf {
+  url?: string | null;
+  fileId?: string | null;
+  name?: string | null;
+  size?: number | null;
+}
+
 export interface AssessmentAttempt {
   id: string;
   applicationId: string;
@@ -78,11 +87,13 @@ export interface AssessmentAttempt {
   candidateEmail: string;
   jobTitle?: string | null;
   jobId?: string | null;
+  kind?: AssessmentKind;
   templateId: string;
   templateName?: string | null;
   path: "test" | "both";
   durationMinutes: number;
   templateSnapshot: AttemptQuestionSnapshot[];
+  pdf?: AssessmentPdf | null;
   expiresAt?: string | null;
   status: AttemptStatus;
   selfie: {
@@ -154,10 +165,12 @@ export interface CreateTemplatePayload {
 }
 
 export interface InvitePayload {
-  templateId: string;
+  templateId?: string;
+  kind?: AssessmentKind;
   path?: "test" | "both";
   durationMinutes?: number;
   expiresInHours?: number;
+  file?: File;
 }
 
 export interface DecidePayload {

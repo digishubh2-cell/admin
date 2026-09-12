@@ -16,6 +16,7 @@ import {
   fetchTemplates,
   inviteToAssessment,
   resendAssessmentInvite,
+  retakeAssessment,
   updateQuestion,
   updateTemplate,
 } from "@/lib/api/assessments";
@@ -136,6 +137,10 @@ export function useAssessmentMutations() {
     }),
     resend: useMutation({
       mutationFn: (applicationId: string) => resendAssessmentInvite(applicationId),
+      onSuccess: invalidate,
+    }),
+    retake: useMutation({
+      mutationFn: (applicationId: string) => retakeAssessment(applicationId),
       onSuccess: invalidate,
     }),
     decide: useMutation({

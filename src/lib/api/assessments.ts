@@ -21,6 +21,7 @@ interface ApiResponse {
   items?: unknown[];
   attempt?: AssessmentAttempt;
   application?: Application;
+  emailWarning?: string | null;
   pagination?: PaginatedResult<unknown>["pagination"];
   categories?: string[];
   difficulties?: string[];
@@ -114,21 +115,70 @@ export async function decideAttempt(id: string, payload: DecidePayload) {
     `/assessments/attempts/${id}/decide`,
     payload
   );
-  return { attempt: data.attempt!, application: data.application };
+  return {
+    attempt: data.attempt!,
+    application: data.application,
+    emailWarning: data.emailWarning || null,
+  };
 }
 
 // Invite (via application)
 export async function inviteToAssessment(applicationId: string, payload: InvitePayload) {
+  if (payload.kind === "pdf" && payload.file) {
+    const formData = new FormData();
+    formData.append("file", payload.file);
+    formData.append("kind", "pdf");
+    formData.append("path", payload.path || "test");
+    if (payload.expiresInHours) {
+      formData.append("expiresInHours", String(payload.expiresInHours));
+    }
+    const { data } = await apiClient.post<ApiResponse>(
+      `/applications/${applicationId}/assessment/invite-pdf`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return {
+      attempt: data.attempt!,
+      application: data.application!,
+      emailWarning: data.emailWarning || null,
+    };
+  }
+
   const { data } = await apiClient.post<ApiResponse>(
     `/applications/${applicationId}/assessment/invite`,
-    payload
+    {
+      templateId: payload.templateId,
+      path: payload.path,
+      durationMinutes: payload.durationMinutes,
+      expiresInHours: payload.expiresInHours,
+      kind: "interactive",
+    }
   );
-  return { attempt: data.attempt!, application: data.application! };
+  return {
+    attempt: data.attempt!,
+    application: data.application!,
+    emailWarning: data.emailWarning || null,
+  };
 }
 
 export async function resendAssessmentInvite(applicationId: string) {
   const { data } = await apiClient.post<ApiResponse>(
     `/applications/${applicationId}/assessment/resend`
   );
-  return { attempt: data.attempt!, application: data.application! };
+  return {
+    attempt: data.attempt!,
+    application: data.application!,
+    emailWarning: data.emailWarning || null,
+  };
+}
+
+export async function retakeAssessment(applicationId: string) {
+  const { data } = await apiClient.post<ApiResponse>(
+    `/applications/${applicationId}/assessment/retake`
+  );
+  return {
+    attempt: data.attempt!,
+    application: data.application!,
+    emailWarning: data.emailWarning || null,
+  };
 }

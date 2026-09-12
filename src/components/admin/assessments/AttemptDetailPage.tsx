@@ -36,7 +36,7 @@ function getErrorMessage(err: unknown) {
 
 export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
   const { data: attempt, isLoading } = useAttempt(attemptId);
-  const { decide } = useAssessmentMutations();
+  const { decide, retake } = useAssessmentMutations();
   const [notes, setNotes] = useState("");
   const [sendEmail, setSendEmail] = useState(true);
 
@@ -56,11 +56,32 @@ export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
 
   async function handleDecide(decision: "pass" | "fail" | "retake") {
     try {
-      await decide.mutateAsync({
+      const result = await decide.mutateAsync({
         id: attempt!.id,
         payload: { decision, notes: notes || null, sendEmail },
       });
-      toast.success(`Marked as ${decision}`);
+      if (result.emailWarning) {
+        toast.warning(
+          `Marked as ${decision}, but the email failed: ${result.emailWarning}`
+        );
+      } else {
+        toast.success(`Marked as ${decision}`);
+      }
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  }
+
+  async function handleRetake() {
+    try {
+      const result = await retake.mutateAsync(attempt!.applicationId);
+      if (result.emailWarning) {
+        toast.warning(
+          `Retake created, but the email failed: ${result.emailWarning}`
+        );
+      } else {
+        toast.success("Retake invite sent with a new link");
+      }
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -68,6 +89,10 @@ export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
 
   const answerMap = new Map(attempt.answers.map((a) => [a.questionId, a.optionId]));
   const canDecide = attempt.status === "submitted";
+  const isPdf = attempt.kind === "pdf";
+  const canRetake = ["submitted", "expired", "in_progress", "void"].includes(
+    attempt.status
+  );
 
   return (
     <div className="space-y-6">
@@ -97,7 +122,11 @@ export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
             <div>
               <p className="text-xs text-admin-text-muted">Template</p>
               <p className="mt-0.5 text-sm font-medium">
-                {attempt.templateName || "—"} ({attempt.durationMinutes}m)
+                {isPdf ? "PDF document" : "Online test"}
+                {attempt.templateName ? ` · ${attempt.templateName}` : ""}
+                {!isPdf && attempt.durationMinutes
+                  ? ` (${attempt.durationMinutes}m)`
+                  : ""}
               </p>
             </div>
             <div>
@@ -109,13 +138,26 @@ export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
             <div>
               <p className="text-xs text-admin-text-muted">Score</p>
               <p className="mt-0.5 text-sm font-medium">
-                {attempt.autoScore.correct}/{attempt.autoScore.total} ({attempt.autoScore.percent}%)
+                {isPdf
+                  ? "No auto score"
+                  : `${attempt.autoScore.correct}/${attempt.autoScore.total} (${attempt.autoScore.percent}%)`}
               </p>
+              {!isPdf ? (
               <p className="text-xs text-admin-text-muted">
                 Tech {attempt.autoScore.breakdown.tech.correct}/{attempt.autoScore.breakdown.tech.total} ·
                 Aptitude {attempt.autoScore.breakdown.aptitude.correct}/
                 {attempt.autoScore.breakdown.aptitude.total}
               </p>
+              ) : attempt.pdf?.url ? (
+                <a
+                  href={attempt.pdf.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary underline"
+                >
+                  Open PDF
+                </a>
+              ) : null}
             </div>
             <div>
               <p className="text-xs text-admin-text-muted">Started</p>
@@ -131,7 +173,9 @@ export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
         <Card>
           <CardContent className="flex flex-col items-center gap-3 p-5">
             <p className="text-xs text-admin-text-muted">Identity selfie</p>
-            {attempt.selfie?.url ? (
+            {isPdf ? (
+              <p className="text-xs text-admin-text-muted">No selfie for PDF assessments</p>
+            ) : attempt.selfie?.url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={attempt.selfie.url}
@@ -160,11 +204,23 @@ export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
       <div className="rounded-2xl border border-admin-border bg-admin-surface p-5">
         <h2 className="text-lg font-semibold">Decision</h2>
         {!canDecide ? (
-          <p className="mt-2 text-sm text-admin-text-muted">
-            {attempt.status === "expired" || attempt.status === "void"
-              ? `This attempt is "${attempt.status}" — no decision needed.`
-              : "Waiting for the candidate to submit before a decision can be recorded."}
-          </p>
+          <div className="mt-2 space-y-3">
+            <p className="text-sm text-admin-text-muted">
+              {attempt.status === "expired" || attempt.status === "void"
+                ? `This attempt is "${attempt.status}". Resend or retake to issue a new link.`
+                : "Waiting for the candidate to submit before a decision can be recorded."}
+            </p>
+            {canRetake ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={retake.isPending}
+                onClick={handleRetake}
+              >
+                Retake — new link &amp; email
+              </Button>
+            ) : null}
+          </div>
         ) : (
           <div className="mt-3 space-y-3">
             <div>
@@ -217,6 +273,12 @@ export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
         ) : null}
       </div>
 
+      {isPdf ? (
+        <div className="rounded-2xl border border-admin-border bg-admin-surface p-5 text-sm text-admin-text-muted">
+          This was a PDF document assessment. There are no scored answers —
+          open the PDF above and decide pass, fail, or retake.
+        </div>
+      ) : (
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">Answers ({attempt.templateSnapshot.length})</h2>
         {attempt.templateSnapshot.map((q, index) => {
@@ -267,6 +329,7 @@ export function AttemptDetailPage({ attemptId }: { attemptId: string }) {
           );
         })}
       </div>
+      )}
     </div>
   );
 }

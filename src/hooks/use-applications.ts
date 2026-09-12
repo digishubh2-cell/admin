@@ -12,6 +12,7 @@ import {
   markHired,
   rejectApplication,
   resendApplicationEmail,
+  sendCandidateMessage,
   scheduleInterview,
   sendOffer,
   updateApplication,
@@ -106,6 +107,16 @@ export function useApplicationMutations() {
     reject: useMutation({
       mutationFn: ({ id, payload }: { id: string; payload?: RejectPayload }) =>
         rejectApplication(id, payload || {}),
+      onSuccess: invalidate,
+    }),
+    sendMessage: useMutation({
+      mutationFn: ({
+        id,
+        payload,
+      }: {
+        id: string;
+        payload: { message: string; sendEmail?: boolean };
+      }) => sendCandidateMessage(id, payload),
       onSuccess: invalidate,
     }),
     resendEmail: useMutation({

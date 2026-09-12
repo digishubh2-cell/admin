@@ -135,6 +135,7 @@ export interface ApplicationAssessment {
   attemptId?: string | null;
   path?: "test" | "both" | null;
   templateId?: string | null;
+  kind?: "interactive" | "pdf" | null;
   invitedAt?: string | null;
 }
 

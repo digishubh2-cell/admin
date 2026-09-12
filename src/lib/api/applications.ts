@@ -21,6 +21,7 @@ interface ApiResponse {
   emails?: ApplicationEmailLogEntry[];
   html?: string;
   kind?: string;
+  emailWarning?: string | null;
   pagination?: PaginatedApplications["pagination"];
 }
 
@@ -98,7 +99,18 @@ export async function rejectApplication(id: string, payload: RejectPayload = {})
     `/applications/${id}/reject`,
     payload
   );
-  return data.application!;
+  return { application: data.application!, emailWarning: data.emailWarning || null };
+}
+
+export async function sendCandidateMessage(
+  id: string,
+  payload: { message: string; sendEmail?: boolean }
+) {
+  const { data } = await apiClient.post<ApiResponse>(
+    `/applications/${id}/message`,
+    payload
+  );
+  return { application: data.application!, emailWarning: data.emailWarning || null };
 }
 
 export async function fetchApplicationEmails(id: string) {
