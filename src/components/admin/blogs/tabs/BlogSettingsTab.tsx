@@ -12,7 +12,7 @@ interface Props {
 
 const settingsList = [
   { key: "comments", label: "Enable Comments" },
-  { key: "enableIndexing", label: "Enable Indexing" },
+  { key: "enableIndexing", label: "Enable Indexing (auto-on when published)" },
   { key: "enableAds", label: "Enable Ads" },
   { key: "enableNewsletter", label: "Enable Newsletter" },
   { key: "allowSharing", label: "Allow Sharing" },

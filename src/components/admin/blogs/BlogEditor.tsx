@@ -181,7 +181,17 @@ export function BlogEditor({ blogId }: BlogEditorProps) {
             <Button
               type="submit"
               disabled={isSaving}
-              onClick={() => setValue("status", "published")}
+              onClick={() => {
+                setValue("status", "published");
+                setValue("settings", {
+                  ...(values.settings || {}),
+                  enableIndexing: true,
+                });
+                setValue("seo", {
+                  ...(values.seo || {}),
+                  robots: "index,follow",
+                });
+              }}
             >
               {isSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
