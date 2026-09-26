@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AdminProviders } from "@/components/admin/providers/AdminProviders";
+import { geistMono, geistSans } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,7 +23,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className="h-full antialiased"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans">
         <AdminProviders>{children}</AdminProviders>

@@ -10,8 +10,8 @@ export function DashboardContent() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="mt-2 text-admin-text-secondary">
+        <h1 className="type-h2">Dashboard</h1>
+        <p className="type-body-sm mt-2 text-admin-text-secondary">
           Overview of leads, content, projects, and platform health.
         </p>
       </div>
@@ -21,7 +21,7 @@ export function DashboardContent() {
           <Card key={stat.label} className="transition-shadow hover:shadow-md">
             <CardHeader className="pb-2">
               <CardDescription>{stat.label}</CardDescription>
-              <CardTitle className="text-3xl font-semibold">{stat.value}</CardTitle>
+              <CardTitle className="type-metric text-3xl">{stat.value}</CardTitle>
             </CardHeader>
             <CardContent>
               <p
@@ -56,7 +56,7 @@ export function DashboardContent() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium">{lead.status}</p>
-                    <p className="text-xs text-admin-text-muted">{lead.time}</p>
+                    <p className="type-tech text-admin-text-muted">{lead.time}</p>
                   </div>
                 </div>
               ))}
@@ -75,7 +75,7 @@ export function DashboardContent() {
                 <div key={item.detail} className="border-l-2 border-primary/30 pl-4">
                   <p className="text-sm font-medium">{item.action}</p>
                   <p className="text-sm text-admin-text-secondary">{item.detail}</p>
-                  <p className="mt-1 text-xs text-admin-text-muted">{item.time}</p>
+                  <p className="type-tech mt-1 text-admin-text-muted">{item.time}</p>
                 </div>
               ))}
             </div>
@@ -121,7 +121,7 @@ export function DashboardContent() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex items-center justify-between">
-              <span>API</span>
+              <span className="type-tech">API</span>
               <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
                 Operational
               </span>

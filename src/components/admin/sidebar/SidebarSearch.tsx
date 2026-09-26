@@ -34,7 +34,7 @@ export function SidebarSearch({ collapsed = false, onOpenSearch }: SidebarSearch
     >
       <Search className="h-4 w-4 shrink-0" />
       <span className="flex-1 text-left">Search everywhere...</span>
-      <kbd className="hidden rounded border border-admin-border bg-admin-surface px-1.5 py-0.5 text-[10px] font-medium sm:inline">
+      <kbd className="type-tech hidden rounded border border-admin-border bg-admin-surface px-1.5 py-0.5 sm:inline">
         ⌘K
       </kbd>
     </button>

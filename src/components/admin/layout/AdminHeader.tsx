@@ -84,7 +84,7 @@ export function AdminHeader({ onOpenCommand }: AdminHeaderProps) {
         >
           <Search className="h-4 w-4" />
           <span className="text-sm">Search everywhere...</span>
-          <kbd className="ml-auto rounded-md border border-admin-border bg-admin-muted px-1.5 py-0.5 text-[10px] font-medium">
+          <kbd className="type-tech ml-auto rounded-md border border-admin-border bg-admin-muted px-1.5 py-0.5">
             ⌘K
           </kbd>
         </Button>

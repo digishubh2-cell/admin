@@ -29,7 +29,7 @@ export function SidebarItem({
       href={item.href}
       onClick={onNavigate}
       className={cn(
-        "group relative flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200",
+        "type-nav group relative flex items-center gap-3 rounded-xl transition-all duration-200",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
         nested ? "py-2 pl-9 pr-3" : "px-3 py-2",
         collapsed && "justify-center px-2 py-2.5",

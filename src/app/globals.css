@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+@import "../styles/typography.css";
 
 /* Class-based dark mode (synced with next-themes `attribute="class"`) */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -8,8 +9,6 @@
   --background: #ffffff;
   --foreground: #0b0f19;
   color-scheme: light;
-  --font-geist-sans: ui-sans-serif, system-ui, sans-serif;
-  --font-geist-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Brand tokens used by markdown preview */
   --color-navy: #0b0f19;
@@ -57,9 +56,6 @@
   --color-white: var(--color-white);
   --color-muted: var(--color-muted);
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-
   --color-primary: var(--admin-primary);
   --color-accent-purple: var(--admin-purple);
   --color-admin-bg: var(--admin-bg);
@@ -100,7 +96,11 @@
 
 /* Blog markdown rendering — preview tabs */
 .blog-prose {
-  @apply max-w-none text-[1.0625rem] leading-[1.8] tracking-tight;
+  max-width: none;
+  font-size: var(--text-body-lg);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--leading-article);
+  letter-spacing: var(--tracking-body);
 }
 
 .blog-prose-light {
@@ -116,7 +116,11 @@
 }
 
 .blog-prose-h2 {
-  @apply mt-12 mb-5 block border-b-2 border-electric/15 pb-3 text-[1.75rem] font-bold leading-tight tracking-tight scroll-mt-20 text-navy;
+  @apply mt-12 mb-5 block scroll-mt-20 border-b-2 border-electric/15 pb-3 text-navy;
+  font-size: var(--text-h3);
+  font-weight: var(--font-weight-heading);
+  line-height: var(--leading-h3);
+  letter-spacing: var(--tracking-h3);
 }
 
 .dark .blog-prose-h2,
@@ -125,7 +129,11 @@
 }
 
 .blog-prose-h3 {
-  @apply mt-9 mb-4 block text-[1.375rem] font-semibold leading-snug tracking-tight scroll-mt-20 text-navy;
+  @apply mt-9 mb-4 block scroll-mt-20 text-navy;
+  font-size: var(--text-h4);
+  font-weight: var(--font-weight-heading);
+  line-height: var(--leading-h4);
+  letter-spacing: var(--tracking-h4);
 }
 
 .dark .blog-prose-h3,
