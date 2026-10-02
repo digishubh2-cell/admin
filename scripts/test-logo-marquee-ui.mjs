@@ -1,0 +1,21 @@
+import assert from "node:assert/strict";
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+
+const root = process.cwd();
+const read = (file) => readFileSync(join(root, file), "utf8");
+const library = "src/components/admin/logo-marquee/LogoLibrary.tsx";
+const editor = "src/components/admin/logo-marquee/LogoEditor.tsx";
+const preview = "src/components/admin/logo-marquee/LogoPreview.tsx";
+const api = "src/lib/api/logo-marquee.ts";
+for (const file of [library, editor, preview, api]) assert.ok(existsSync(join(root, file)), file);
+assert.match(read(library), /approve.*activate.*deactivate.*archive.*scope.*row/);
+assert.match(read(library), /draggable=\{!busy\}/);
+assert.match(read(library), /Move \$\{item\.name\} earlier/);
+assert.match(read(library), /Import draft/);
+assert.match(read(editor), /retainAssets/);
+assert.match(read(editor), /status: "DRAFT"/);
+assert.match(read(preview), /logo-preview-ready/);
+assert.match(read(preview), /320, 360, 375, 390, 414, 768, 1024, 1280, 1440/);
+assert.match(read(api), /\/logo-marquee\/admin/);
+console.log("Logo Marquee admin UI checks passed.");

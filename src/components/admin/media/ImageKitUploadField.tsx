@@ -39,7 +39,7 @@ interface ImageKitUploadFieldProps {
   label?: string;
   folder?: string;
   value?: ImageKitMediaValue | null;
-  onChange: (value: { url: string | null; publicId: string | null }) => void;
+  onChange: (value: { url: string | null; publicId: string | null; width?: number | null; height?: number | null }) => void;
   disabled?: boolean;
   className?: string;
   hint?: string;
@@ -51,6 +51,8 @@ interface ImageKitUploadFieldProps {
   previewFit?: "cover" | "contain";
   /** Override dropzone min-height class */
   dropzoneClassName?: string;
+  /** Shared logo assets are retained until a separate, explicit removal. */
+  retainAssets?: boolean;
 }
 
 function resolveFileId(value?: ImageKitMediaValue | null) {
@@ -69,6 +71,7 @@ export function ImageKitUploadField({
   accept = ACCEPT,
   previewFit = "cover",
   dropzoneClassName,
+  retainAssets = false,
 }: ImageKitUploadFieldProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -103,9 +106,11 @@ export function ImageKitUploadField({
         onChange({
           url: result.url,
           publicId: result.publicId || result.fileId,
+          width: result.width,
+          height: result.height,
         });
 
-        if (previousId && previousId !== (result.publicId || result.fileId)) {
+        if (!retainAssets && previousId && previousId !== (result.publicId || result.fileId)) {
           try {
             await deleteMedia(previousId);
           } catch {
@@ -123,7 +128,7 @@ export function ImageKitUploadField({
         if (inputRef.current) inputRef.current.value = "";
       }
     },
-    [folder, maxBytes, maxMbLabel, onChange, value]
+    [folder, maxBytes, maxMbLabel, onChange, value, retainAssets]
   );
 
   const handleFiles = useCallback(
@@ -138,7 +143,7 @@ export function ImageKitUploadField({
     setError(null);
     setDeleting(true);
     try {
-      if (fileId) {
+      if (fileId && !retainAssets) {
         await deleteMedia(fileId);
       }
       onChange({ url: null, publicId: null });
@@ -151,7 +156,7 @@ export function ImageKitUploadField({
       setDeleting(false);
       if (inputRef.current) inputRef.current.value = "";
     }
-  }, [fileId, onChange]);
+  }, [fileId, onChange, retainAssets]);
 
   return (
     <div className={cn("space-y-2", className)}>

@@ -394,6 +394,11 @@ export const navigation: NavSection[] = [
     icon: Image,
     items: [
       {
+        id: "logo-marquee", title: "Logo Library", href: "/logo-marquee", slug: "logo-marquee", icon: Images,
+        description: "Ecosystem logos, approval, and global marquee settings", permissions: ["media.read"],
+        roles: ["super_admin", "admin"], keywords: ["logos", "marquee", "ecosystem", "brands"],
+      },
+      {
         id: "media",
         title: "Media Library",
         href: "/media",
