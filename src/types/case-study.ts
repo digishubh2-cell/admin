@@ -15,6 +15,11 @@ export interface CaseStudyMedia {
   caption?: string | null;
   credit?: string | null;
   type?: string | null;
+  title?: string | null;
+  thumbnailUrl?: string | null;
+  uploadDate?: string | null;
+  durationSeconds?: number | null;
+  transcript?: string | null;
 }
 
 export interface CaseStudyMetric {
@@ -47,6 +52,10 @@ export interface CaseStudyDownload {
   url?: string | null;
   type?: string | null;
   fileSize?: string | null;
+  description?: string | null;
+  version?: string | null;
+  minimumOs?: string | null;
+  sha256?: string | null;
 }
 
 export interface CaseStudyFAQ {

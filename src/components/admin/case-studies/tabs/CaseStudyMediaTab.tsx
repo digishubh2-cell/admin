@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ImageKitUploadField } from "@/components/admin/media/ImageKitUploadField";
 import { ImageKitGalleryField } from "@/components/admin/media/ImageKitGalleryField";
+import { CaseStudyResourcesFields } from "./CaseStudyResourcesFields";
 
 interface Props {
   setValue: UseFormSetValue<Partial<CaseStudy>>;
@@ -132,6 +133,7 @@ export function CaseStudyMediaTab({ setValue, values }: Props) {
           ))}
         </div>
       </FormSection>
+      <CaseStudyResourcesFields values={values} setValue={setValue} />
     </div>
   );
 }
