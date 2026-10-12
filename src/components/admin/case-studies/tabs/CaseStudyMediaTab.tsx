@@ -28,6 +28,7 @@ function MediaField({
   return (
     <div className="space-y-3 rounded-xl border border-admin-border p-4">
       <ImageKitUploadField
+        retainAssets
         label={label}
         folder={folder}
         value={media}
@@ -47,7 +48,7 @@ function MediaField({
               onChange({
                 ...media,
                 url: e.target.value,
-                publicId: e.target.value ? media?.publicId : null,
+                publicId: e.target.value === media?.url ? media?.publicId : null,
               })
             }
             placeholder="https://ik.imagekit.io/..."
@@ -119,6 +120,7 @@ export function CaseStudyMediaTab({ setValue, values }: Props) {
         <div className="grid gap-6">
           {GALLERY_BUCKETS.map(({ key, label }) => (
             <ImageKitGalleryField
+              retainAssets
               key={key}
               label={label}
               folder="case-studies"

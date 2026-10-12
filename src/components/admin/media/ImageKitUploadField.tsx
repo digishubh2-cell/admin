@@ -51,7 +51,7 @@ interface ImageKitUploadFieldProps {
   previewFit?: "cover" | "contain";
   /** Override dropzone min-height class */
   dropzoneClassName?: string;
-  /** Shared logo assets are retained until a separate, explicit removal. */
+  /** Shared assets are retained when replacing or clearing this field. */
   retainAssets?: boolean;
 }
 
@@ -271,7 +271,7 @@ export function ImageKitUploadField({
                 ) : (
                   <Trash2 className="h-4 w-4" />
                 )}
-                Delete
+                {retainAssets ? "Remove" : "Delete"}
               </Button>
             </div>
           </div>

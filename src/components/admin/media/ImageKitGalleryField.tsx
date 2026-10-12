@@ -31,6 +31,8 @@ interface ImageKitGalleryFieldProps {
   disabled?: boolean;
   className?: string;
   hint?: string;
+  /** Keep shared CDN assets when detaching an image from this form. */
+  retainAssets?: boolean;
 }
 
 function resolveFileId(item?: ImageKitMediaValue | null) {
@@ -45,6 +47,7 @@ export function ImageKitGalleryField({
   disabled = false,
   className,
   hint = "JPEG, PNG, WebP, GIF up to 8MB each — drop multiple images",
+  retainAssets = false,
 }: ImageKitGalleryFieldProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -110,7 +113,7 @@ export function ImageKitGalleryField({
       setDeletingIndex(index);
       try {
         const fileId = resolveFileId(item);
-        if (fileId) {
+        if (fileId && !retainAssets) {
           await deleteMedia(fileId);
         }
         onChange(items.filter((_, i) => i !== index));
@@ -123,7 +126,7 @@ export function ImageKitGalleryField({
         setDeletingIndex(null);
       }
     },
-    [items, onChange]
+    [items, onChange, retainAssets]
   );
 
   return (
@@ -161,7 +164,7 @@ export function ImageKitGalleryField({
                     ) : (
                       <Trash2 className="h-4 w-4" />
                     )}
-                    Delete
+                    {retainAssets ? "Remove" : "Delete"}
                   </Button>
                 </div>
               </div>
