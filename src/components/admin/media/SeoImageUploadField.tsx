@@ -5,7 +5,7 @@
  * Persists only the CDN URL (schema stays string); fileId is held in-session for delete.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ImageKitUploadField } from "./ImageKitUploadField";
 
 interface SeoImageUploadFieldProps {
@@ -16,6 +16,7 @@ interface SeoImageUploadFieldProps {
   disabled?: boolean;
   className?: string;
   hint?: string;
+  retainAssets?: boolean;
 }
 
 export function SeoImageUploadField({
@@ -26,15 +27,15 @@ export function SeoImageUploadField({
   disabled,
   className,
   hint,
+  retainAssets,
 }: SeoImageUploadFieldProps) {
-  const [fileId, setFileId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!url) setFileId(null);
-  }, [url]);
+  const [uploaded, setUploaded] = useState<{ url: string | null; publicId: string | null } | null>(null);
+  // A manually changed URL must never inherit an unrelated file's delete ID.
+  const fileId = uploaded?.url === url ? uploaded?.publicId : null;
 
   return (
     <ImageKitUploadField
+      retainAssets={retainAssets}
       label={label}
       folder={folder}
       value={{ url, publicId: fileId }}
@@ -42,7 +43,7 @@ export function SeoImageUploadField({
       className={className}
       hint={hint}
       onChange={({ url: nextUrl, publicId }) => {
-        setFileId(publicId);
+        setUploaded({ url: nextUrl, publicId });
         onUrlChange(nextUrl);
       }}
     />

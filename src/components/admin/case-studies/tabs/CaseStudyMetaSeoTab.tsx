@@ -34,6 +34,7 @@ export function CaseStudyMetaSeoTab({ setValue, values, seoScore }: Props) {
           <div className="space-y-2"><Label>OG Title</Label><Input value={seo.ogTitle || ""} onChange={(e) => update({ ogTitle: e.target.value })} /></div>
           <div className="space-y-2"><Label>OG Description</Label><textarea className="min-h-[60px] w-full rounded-md border border-admin-border px-3 py-2 text-sm" value={seo.ogDescription || ""} onChange={(e) => update({ ogDescription: e.target.value })} /></div>
           <SeoImageUploadField
+            retainAssets
             label="OG Image"
             folder="case-studies"
             url={seo.ogImage || null}
