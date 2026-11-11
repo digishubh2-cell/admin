@@ -31,6 +31,14 @@ import {
   Wrench,
   UserCircle,
   Images,
+  FileUser,
+  IndianRupee,
+  Receipt,
+  Sparkles,
+  Cpu,
+  MessageCircle,
+  LayoutTemplate,
+  History,
 } from "lucide-react";
 import type { NavRole, NavSection, Permission } from "@/types/navigation";
 
@@ -386,6 +394,23 @@ export const navigation: NavSection[] = [
         permissions: ["apis.read"],
         keywords: ["endpoints", "rest"],
       },
+    ],
+  },
+  {
+    id: "resume-studio",
+    title: "Resume Studio",
+    icon: FileUser,
+    roles: ["super_admin", "admin"],
+    items: [
+      { id: "resume-studio-overview", title: "Overview", href: "/resume-studio", slug: "resume-studio", icon: LayoutDashboard, description: "Funnel, revenue, exports and AI cost", permissions: ["resume_studio.read"], roles: ["super_admin", "admin"], keywords: ["resume", "funnel", "revenue"] },
+      { id: "resume-studio-templates", title: "Templates", href: "/resume-studio/templates", slug: "resume-studio-templates", icon: LayoutTemplate, description: "Compile-check, approve and publish templates", permissions: ["resume_studio.manage"], roles: ["super_admin", "admin"], keywords: ["latex", "template", "publish"] },
+      { id: "resume-studio-pricing", title: "Pricing", href: "/resume-studio/pricing", slug: "resume-studio-pricing", icon: IndianRupee, description: "Export plans and prices", permissions: ["resume_studio.finance"], roles: ["super_admin", "admin"], keywords: ["price", "plan"] },
+      { id: "resume-studio-orders", title: "Orders & Payments", href: "/resume-studio/orders", slug: "resume-studio-orders", icon: Receipt, description: "Orders, payment events, exports and refunds", permissions: ["resume_studio.finance"], roles: ["super_admin", "admin"], keywords: ["razorpay", "refund", "payment"] },
+      { id: "resume-studio-ai", title: "AI Usage", href: "/resume-studio/ai-usage", slug: "resume-studio-ai", icon: Sparkles, description: "Tokens and cost by task and model", permissions: ["resume_studio.read"], roles: ["super_admin", "admin"], keywords: ["llm", "tokens", "cost"] },
+      { id: "resume-studio-jobs", title: "Compile Logs", href: "/resume-studio/compile-jobs", slug: "resume-studio-jobs", icon: Cpu, description: "Preview and export compile jobs", permissions: ["resume_studio.read"], roles: ["super_admin", "admin"], keywords: ["pdf", "latex", "export"] },
+      { id: "resume-studio-customers", title: "Customers", href: "/resume-studio/customers", slug: "resume-studio-customers", icon: Users, description: "Accounts, suspension and data deletion", permissions: ["resume_studio.manage"], roles: ["super_admin", "admin"], keywords: ["accounts", "users"] },
+      { id: "resume-studio-feedback", title: "Feedback", href: "/resume-studio/feedback", slug: "resume-studio-feedback", icon: MessageCircle, description: "User ratings and issues", permissions: ["resume_studio.read"], roles: ["super_admin", "admin"], keywords: ["ratings"] },
+      { id: "resume-studio-audit", title: "Audit Log", href: "/resume-studio/audit", slug: "resume-studio-audit", icon: History, description: "Admin actions on Resume Studio", permissions: ["resume_studio.read"], roles: ["super_admin", "admin"], keywords: ["audit"] },
     ],
   },
   {

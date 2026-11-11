@@ -62,7 +62,10 @@ export type Permission =
   | "settings.write"
   | "logs.read"
   | "notifications.read"
-  | "integrations.read";
+  | "integrations.read"
+  | "resume_studio.read"
+  | "resume_studio.manage"
+  | "resume_studio.finance";
 
 export interface NavItem {
   id: string;
