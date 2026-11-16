@@ -192,7 +192,7 @@ export function getPipelinePrimaryAction(
   if (status === "hired") {
     return {
       label: "Issue certificate",
-      description: "When the internship/trainee period ends, generate the completion certificate.",
+      description: "When the internship has ended, review and issue the completion certificate and letter.",
       panel: "complete",
     };
   }

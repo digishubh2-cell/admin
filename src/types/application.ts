@@ -115,8 +115,47 @@ export interface ApplicationCompletion {
   certificateUrl?: string | null;
   certificateFileId?: string | null;
   certificateId?: string | null;
+  letterUrl?: string | null;
+  letterFileId?: string | null;
+  letterReference?: string | null;
+  verificationUrl?: string | null;
+  issuanceId?: string | null;
+  issuanceStatus?: string | null;
+  emailStatus?: string | null;
+  emailError?: string | null;
+  emailSentAt?: string | null;
+  emailTo?: string | null;
+  issueDate?: string | null;
+  issuedByName?: string | null;
+  signatoryName?: string | null;
+  signatoryTitle?: string | null;
+  designation?: string | null;
+  department?: string | null;
+  durationLabel?: string | null;
+  internshipStartDate?: string | null;
+  internshipEndDate?: string | null;
+  acknowledgement?: string | null;
   rating?: number | null;
   feedback?: string | null;
+  activityLog?: Array<{
+    id: string;
+    type: string;
+    message: string;
+    at: string;
+    actorName?: string | null;
+  }>;
+  history?: Array<{
+    id: string;
+    version?: number;
+    status: string;
+    certificateNumber?: string | null;
+    letterReference?: string | null;
+    certificateUrl?: string | null;
+    letterUrl?: string | null;
+    issueDate?: string | null;
+    issuedByName?: string | null;
+    revokedAt?: string | null;
+  }>;
 }
 
 export interface ApplicationEmailLogEntry {

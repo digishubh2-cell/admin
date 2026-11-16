@@ -541,6 +541,17 @@ export const navigation: NavSection[] = [
         keywords: ["config", "brand", "smtp"],
       },
       {
+        id: "document-settings",
+        title: "Document settings",
+        href: "/settings/documents",
+        slug: "document-settings",
+        icon: FileText,
+        description: "Certificate signatory, logo, and letterhead",
+        permissions: ["settings.read"],
+        roles: ["super_admin", "admin"],
+        keywords: ["certificate", "signature", "letterhead"],
+      },
+      {
         id: "logs",
         title: "Logs",
         href: "/logs",

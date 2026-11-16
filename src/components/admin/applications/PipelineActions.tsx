@@ -14,7 +14,6 @@ import type { AssessmentAttempt } from "@/types/assessment";
 import type {
   Application,
   ApplicationStatus,
-  CompletePayload,
   HirePayload,
   InterviewPayload,
   OfferPayload,
@@ -54,7 +53,7 @@ interface PipelineActionsProps {
   onInterview: (payload: InterviewPayload) => void;
   onOffer: (payload: OfferPayload) => void;
   onHire: (payload: HirePayload) => void;
-  onComplete: (payload: CompletePayload) => void;
+  onOpenIssuance: () => void;
   onReject: (payload: RejectPayload) => void;
   /** Deep-link to the Offer Letter tab instead of the inline offer panel */
   onOpenOfferTab?: () => void;
@@ -68,7 +67,7 @@ export function PipelineActions({
   onInterview,
   onOffer,
   onHire,
-  onComplete,
+  onOpenIssuance,
   onReject,
   onOpenOfferTab,
 }: PipelineActionsProps) {
@@ -231,31 +230,36 @@ export function PipelineActions({
     notes: "",
   });
 
-  const [complete, setComplete] = useState({
-    completedAt: toDateInput(
-      application.pipeline?.offer?.endDate || new Date().toISOString()
-    ),
-    rating: "",
-    feedback: "",
-  });
-
   const [rejectReason, setRejectReason] = useState("");
   const [notifyReject, setNotifyReject] = useState(true);
   const [notifyAdvance, setNotifyAdvance] = useState(true);
   const [notifyInterview, setNotifyInterview] = useState(true);
   const [notifyOffer, setNotifyOffer] = useState(true);
   const [notifyHire, setNotifyHire] = useState(true);
-  const [notifyComplete, setNotifyComplete] = useState(true);
   const [qualifyNote, setQualifyNote] = useState("");
   const [notifyQualify, setNotifyQualify] = useState(true);
 
-  if (status === "archived" || status === "completed") {
+  if (status === "archived") {
     return (
       <div className="rounded-xl border border-admin-border bg-admin-muted/30 p-4">
         <p className="text-sm font-medium">{stage?.title || "Closed"}</p>
         <p className="mt-1 text-sm text-admin-text-muted">
           {stage?.blurb || "No further pipeline actions for this stage."}
         </p>
+      </div>
+    );
+  }
+
+  if (status === "completed") {
+    return (
+      <div className="rounded-xl border border-admin-border bg-admin-muted/30 p-4">
+        <p className="text-sm font-medium">{stage?.title || "Completed"}</p>
+        <p className="mt-1 text-sm text-admin-text-muted">
+          {stage?.blurb || "Completion documents are on the candidate record."}
+        </p>
+        <Button className="mt-3" size="sm" onClick={onOpenIssuance}>
+          Completion documents
+        </Button>
       </div>
     );
   }
@@ -326,6 +330,10 @@ export function PipelineActions({
     if (!primary) return;
     if (primary.panel === "offer") {
       openOfferComposer();
+      return;
+    }
+    if (primary.panel === "complete") {
+      onOpenIssuance();
       return;
     }
     if (primary.panel) {
@@ -552,7 +560,7 @@ export function PipelineActions({
             <Button
               size="sm"
               disabled={busy}
-              onClick={() => setPanel("complete")}
+              onClick={onOpenIssuance}
             >
               Issue certificate
             </Button>
@@ -1038,75 +1046,6 @@ export function PipelineActions({
               }
             >
               {notifyHire ? "Mark hired & welcome email" : "Mark hired"}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setPanel(null)}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      {panel === "complete" ? (
-        <div className="space-y-3 rounded-xl border border-admin-border bg-admin-muted/30 p-4">
-          <p className="text-sm font-medium">Issue completion certificate</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label>Completion date</Label>
-              <Input
-                type="date"
-                value={complete.completedAt}
-                onChange={(e) =>
-                  setComplete((s) => ({ ...s, completedAt: e.target.value }))
-                }
-              />
-            </div>
-            <div>
-              <Label>Rating (1–5)</Label>
-              <Input
-                type="number"
-                min={1}
-                max={5}
-                value={complete.rating}
-                onChange={(e) =>
-                  setComplete((s) => ({ ...s, rating: e.target.value }))
-                }
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Feedback</Label>
-              <Textarea
-                rows={2}
-                value={complete.feedback}
-                onChange={(e) =>
-                  setComplete((s) => ({ ...s, feedback: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={notifyComplete}
-              onChange={(e) => setNotifyComplete(e.target.checked)}
-            />
-            Email candidate
-          </label>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              disabled={busy}
-              onClick={() =>
-                onComplete({
-                  completedAt: complete.completedAt || null,
-                  rating: complete.rating ? Number(complete.rating) : null,
-                  feedback: complete.feedback || null,
-                  sendEmail: notifyComplete,
-                })
-              }
-            >
-              {notifyComplete
-                ? "Generate certificate & email"
-                : "Generate certificate"}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setPanel(null)}>
               Cancel

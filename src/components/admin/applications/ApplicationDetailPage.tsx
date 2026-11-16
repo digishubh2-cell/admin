@@ -21,7 +21,6 @@ import type {
   Application,
   ApplicationOffer,
   ApplicationStatus,
-  CompletePayload,
   HirePayload,
   InterviewPayload,
   OfferPayload,
@@ -37,6 +36,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { PipelineStepper } from "./PipelineStepper";
 import { PipelineActions } from "./PipelineActions";
+import { IssuanceWorkspace } from "./IssuanceWorkspace";
 import { OfferLetterTab } from "./OfferLetterTab";
 import {
   STAGE_COPY,
@@ -243,6 +243,16 @@ function buildActivity(application: Application): ActivityEvent[] {
     });
   }
 
+  for (const entry of application.pipeline?.completion?.activityLog || []) {
+    events.push({
+      id: entry.id,
+      at: entry.at,
+      title: entry.message,
+      detail: entry.actorName || null,
+      tone: entry.type.includes("fail") || entry.type.includes("revok") ? "danger" : "success",
+    });
+  }
+
   if (application.rejectedAt) {
     events.push({
       id: "rejected",
@@ -313,6 +323,7 @@ export function ApplicationDetailPage({
   const mutations = useApplicationMutations();
   const { resend, retake } = useAssessmentMutations();
   const [tab, setTab] = useState<DetailTab>("overview");
+  const [issuanceOpen, setIssuanceOpen] = useState(false);
   const [tabSeeded, setTabSeeded] = useState(false);
   const [notes, setNotes] = useState("");
   const [candidateMessage, setCandidateMessage] = useState("");
@@ -508,25 +519,6 @@ export function ApplicationDetailPage({
       toastPipelineResult(
         "Marked hired — welcome email sent",
         "Marked hired",
-        payload.sendEmail,
-        result.emailWarning
-      );
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    }
-  }
-
-  async function handleComplete(payload: CompletePayload) {
-    if (!application) return;
-    try {
-      toast.message("Generating certificate…");
-      const result = await mutations.complete.mutateAsync({
-        id: application.id,
-        payload,
-      });
-      toastPipelineResult(
-        "Certificate issued and emailed",
-        "Certificate issued",
         payload.sendEmail,
         result.emailWarning
       );
@@ -896,7 +888,7 @@ export function ApplicationDetailPage({
                   onInterview={handleInterview}
                   onOffer={handleOffer}
                   onHire={handleHire}
-                  onComplete={handleComplete}
+                  onOpenIssuance={() => setIssuanceOpen(true)}
                   onReject={handleReject}
                   onOpenOfferTab={() => handleTabChange("offer")}
                 />
@@ -1521,28 +1513,38 @@ export function ApplicationDetailPage({
               </div>
 
               <div className="rounded-xl border border-admin-border p-4 sm:col-span-2">
-                <p className="text-sm font-medium">Certificate</p>
-                {completion?.certificateUrl ? (
-                  <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <Button variant="outline" size="sm" asChild>
-                      <a
-                        href={completion.certificateUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Download className="h-4 w-4" />
-                        Certificate PDF
-                      </a>
-                    </Button>
-                    {completion.certificateId ? (
-                      <p className="text-xs text-admin-text-muted">
-                        ID: {completion.certificateId}
-                      </p>
-                    ) : null}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm font-medium">Internship completion</p>
+                  <Button size="sm" variant="outline" onClick={() => setIssuanceOpen(true)}>
+                    {completion?.certificateUrl ? "Manage documents" : "Issue documents"}
+                  </Button>
+                </div>
+                {completion?.certificateUrl || completion?.letterUrl ? (
+                  <div className="mt-3 space-y-3">
+                    <DocumentLink
+                      title="Internship Completion Certificate"
+                      meta={[completion.certificateId, completion.issueDate, completion.issuedByName, completion.issuanceStatus].filter(Boolean).join(" · ")}
+                      href={completion.certificateUrl}
+                    />
+                    <DocumentLink
+                      title="Internship Completion Letter"
+                      meta={[completion.letterReference, completion.issueDate].filter(Boolean).join(" · ")}
+                      href={completion.letterUrl}
+                    />
+                    {(completion.history || [])
+                      .filter((item) => item.id !== completion.issuanceId && item.status !== "draft")
+                      .map((item) => (
+                        <DocumentLink
+                          key={item.id}
+                          title={`Previous certificate · v${item.version || ""}`}
+                          meta={[item.certificateNumber, item.status].filter(Boolean).join(" · ")}
+                          href={item.certificateUrl}
+                        />
+                      ))}
                   </div>
                 ) : (
                   <p className="mt-3 text-sm text-admin-text-muted">
-                    No certificate issued yet.
+                    No completion documents issued yet. Hiring or accepting an offer does not complete the internship.
                   </p>
                 )}
               </div>
@@ -1614,6 +1616,40 @@ export function ApplicationDetailPage({
           </div>
         </TabsContent>
       </Tabs>
+      <IssuanceWorkspace
+        applicationId={application.id}
+        open={issuanceOpen}
+        onClose={() => setIssuanceOpen(false)}
+      />
+    </div>
+  );
+}
+
+function DocumentLink({
+  title,
+  meta,
+  href,
+}: {
+  title: string;
+  meta?: string;
+  href?: string | null;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p className="text-sm font-medium">{title}</p>
+        {meta ? <p className="text-xs text-admin-text-muted">{meta}</p> : null}
+      </div>
+      {href ? (
+        <Button variant="outline" size="sm" asChild>
+          <a href={href} target="_blank" rel="noopener noreferrer">
+            <Download className="h-4 w-4" />
+            PDF
+          </a>
+        </Button>
+      ) : (
+        <p className="text-xs text-admin-text-muted">File unavailable</p>
+      )}
     </div>
   );
 }
