@@ -148,22 +148,17 @@ export async function saveDocumentSettings(settings: {
 export async function uploadDocumentLogo(file: File) {
   const body = new FormData();
   body.append("file", file);
-  const { data } = await apiClient.post<IssuanceResponse>("/document-settings/logo", body, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  // Let the browser set multipart boundaries. A manual Content-Type breaks multer.
+  const { data } = await apiClient.post<IssuanceResponse>("/document-settings/logo", body);
   return data.settings!;
 }
 
 export async function uploadSignatory(file: File, name: string, designation: string) {
   const body = new FormData();
   body.append("file", file);
-  body.append("name", name);
-  body.append("designation", designation);
-  const { data } = await apiClient.post<IssuanceResponse>(
-    "/document-settings/signatories",
-    body,
-    { headers: { "Content-Type": "multipart/form-data" } }
-  );
+  body.append("name", name.trim());
+  body.append("designation", designation.trim());
+  const { data } = await apiClient.post<IssuanceResponse>("/document-settings/signatories", body);
   return data.settings!;
 }
 
@@ -172,8 +167,7 @@ export async function replaceSignatorySignature(signatoryId: string, file: File)
   body.append("file", file);
   const { data } = await apiClient.post<IssuanceResponse>(
     `/document-settings/signatories/${signatoryId}/signature`,
-    body,
-    { headers: { "Content-Type": "multipart/form-data" } }
+    body
   );
   return data.settings!;
 }

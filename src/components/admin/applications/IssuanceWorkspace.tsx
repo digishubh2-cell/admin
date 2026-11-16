@@ -24,7 +24,21 @@ import type { IssuanceContext, IssuanceForm, IssuanceRecord } from "@/types/issu
 
 function errorMessage(error: unknown) {
   if (error && typeof error === "object" && "response" in error) {
-    const response = (error as { response?: { data?: { message?: string } } }).response;
+    const response = (
+      error as {
+        response?: {
+          data?: {
+            message?: string;
+            errors?: Record<string, string[] | undefined>;
+          };
+        };
+      }
+    ).response;
+    const fieldErrors = response?.data?.errors;
+    if (fieldErrors) {
+      const first = Object.values(fieldErrors).flat().find(Boolean);
+      if (first) return String(first);
+    }
     if (response?.data?.message) return response.data.message;
   }
   if (error instanceof Error) return error.message;
